@@ -31,5 +31,5 @@ class HermiteCurve {
 				(3.f*s*s -2.f*s)*te;
 
 			return _value;
-		}	
+		}
 };
