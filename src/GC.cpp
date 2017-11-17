@@ -5,52 +5,67 @@
 
 typedef CGAL::Aff_transformation_3<K> Aff_transformation_3; //K kernel defined in intersect.h
 
-
 float GC::straightness(float C){
 
 	float straightness = C;
+	float epsilon = 0.005f;
+
 	//Create CGAL format for ps, pe, and axis as a line
 	Point_3 _ps(GC.axis.ps[0], GC.axis.ps[1], GC.axis.ps[2]);
 	Point_3 _pe(GC.axis.pe[0], GC.axis.pe[1], GC.axis.pe[2]);
-	Line_3 axis_line(_ps, _pe);
 
-	float max_dist = 0;
-	float step = 0.01f;
-	float threshold = 0.005f;
+	//constains all the control_points ordered by their parameter's value
+	std::vector<controlPoint_t> list;
 
-	float t = 0.f;
-	while ( t < 1.f){
+	bool done = false;
+	while( !done ){
 
-		//Consider point on axis curve
-		Vec3f point = axis.interpolate(t);
-		Point_3 _point(point[0], point[1], point[2]);
-
-		//Computes distance from point to line between ps and pe;
-		float dist = squared_distance_3(_point, axis_line);
-		if(dist > max_dist){
-			if(dist > threshold){
-				straightness+= dist;
+		controlPoint_t control_point = findMaxDistToLine(_ps, _pe);
+		if(control_point.dist > epsilon){
+			for(int i = 0; i < list.size(); i++){
+				if( control_point.parameter > list[i].parameter){
+					list.insert(list.begin() + i, control_point);
+					break;
+				}
 			}
+		}else{
+			done = true;
 		}
 	}
 
+	for(int i = 0; i < list.size(); i++){
+		straightness += list[i].dist;
+	}
+
+	return straightness;
+
 }
 
-float GC::findMaxDistToLine(Point_3 start_point, Point_3 end_point){
+controlPoint_t GC::findMaxDistToLine(Point_3 start_point, Point_3 end_point){
 
 	Line_3 line(start_point, end_point);
-
-	float epsilon = 0.005f;
 	float max_dist = 0.f;
+	float value = 0.f; //control point paramater
 
-	while( t < 1.f){
+	//Increasing step is 0.01
+	for(int t = 0; t < 100; t++){
 		//Consider point on axis curve
-		Vec3f point = axis.interpolate(t);
+		Vec3f point = axis.interpolate(t/100.0f);
 		Point_3 _point(point[0], point[1], point[2]);
 
 		//Computes distance from point to line
 		float dist = squared_distance_3(_point, line);
+		if( dist > max_dist){
+			max_dist = dist;
+			control_point = t/100.0f;
+		}
 	}
+
+	controlPoint_t control_point;
+	control_point.parameter = parameter;
+	control_point.dist = max_dist;
+
+	return control_point;
 }
 
 float GC::profile_variation(){

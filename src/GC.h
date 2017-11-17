@@ -3,7 +3,12 @@
 
 #include "intersect.h"
 #include "HermiteCurve.h"
+#include <vector>
 
+struct controlPoint_t {
+	float parameter;
+	float dist;
+}
 
 class GC {
 
@@ -26,7 +31,7 @@ class GC {
 		float cylindricity(float alpha);
 		float straightness(float C);
 		float profile_variation();
-		float findMaxDistToLine(Point_3 start_point, Point_3 end_point);
+		controlPoint_t findMaxDistToLine(Point_3 start_point, Point_3 end_point);
 		GC merge(GC b);
 };
 
