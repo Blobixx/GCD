@@ -2,8 +2,57 @@
 #include <CGAL/Aff_transformation_3.h>
 #include <CGAL/squared_distance_3.h>
 #include <CGAL/Line_3.h>
+#include <cmath>
 
 typedef CGAL::Aff_transformation_3<K> Aff_transformation_3; //K kernel defined in intersect.h
+
+float Haussdorf(Polylines c_i, Polylines c_j){
+
+	int nb_samples = 6;
+	//The sample points are 2D points but I consider them as 3D points with y = 0 (so I can use distance method
+	//from CGAL)
+
+	// How to sample when I have no idea about how the points are positioned ?
+	std::vector<Point_3> c_i_samples;
+	std::vector<Point_3> c_j_samples;
+
+	//Let's consider there is only 1 component per polyline
+	int size_i = c_i.size();
+	int size_j = c_j.size();
+	 // how to express MAX_VALUE in C++ ?
+	float min_ji = MAX_VALUE;
+
+	float max_ij = 0.f;
+	for(int k = 0; k < size_i; k++){
+		float shortest = std::sqrt(CGAL::squared_distance_3(c_i_samples[k], c_j_samples[0]));;
+		for(int h = 1; h < size_j; h++){
+			float d = std::sqrt(CGAL::squared_distance_3(c_i_samples[k], c_j_samples[h]));
+			if (d < shortest){
+				shortest = d;
+			}
+		}
+		if(shortest > max_ij){
+			max_ij = shortest;
+		}
+	}
+
+	float max_ji = 0.f;
+	for(int h = 0; h < size_j; h++){
+		float shortest = std::sqrt(CGAL::squared_distance_3(c_j_samples[h], c_i_samples[0]));
+		for(int k = 1; k < size_i; k++){
+			float d = std::sqrt(CGAL::squared_distance_3(c_j_samples[h], c_i_samples[k]));
+			if (d < shortest){
+				shortest = d;
+			}
+		}
+		if(shortest > max_ji){
+			max_ji = shortest;
+		}
+	}
+
+	return std::max(max_ij, max_ji);
+
+}
 
 float GC::straightness(float C){
 
@@ -54,7 +103,7 @@ controlPoint_t GC::findMaxDistToLine(Point_3 start_point, Point_3 end_point){
 		Point_3 _point(point[0], point[1], point[2]);
 
 		//Computes distance from point to line
-		float dist = squared_distance_3(_point, line);
+		float dist = std::sqrt(squared_distance_3(_point, line));
 		if( dist > max_dist){
 			max_dist = dist;
 			control_point = t/100.0f;
@@ -141,43 +190,7 @@ float GC::cylindricity(float alpha, float C){
 	return cylindricity;
 }
 
-float Haussdorf(Polylines c_i, Polylines c_j){
 
-	int nb_samples = 6;
-	//The sample points are 2D points but I consider them as 3D points with y = 0 (so I can use distance method
-	//from CGAL)
-
-	// How to sample when I have no idea about how the points are positioned ?
-	std::vector<Point_3> c_i_samples;
-	std::vector<Point_3> c_j_samples;
-
-	//Let's consider there is only 1 component per polyline
-	int size_i = c_i.size();
-	int size_j = c_j.size();
-	float min_ij = MAX_VALUE; // how to express MAX_VALUE in C++ ?
-	float min_ji = MAX_VALUE;
-
-	for(int k = 0; k < size_i; k++){
-		for(int h = 0; h < size_j, h++){
-			float d = CGAL::squared_distance_3(c_i_samples[k], c_j_samples[h]);
-			if (d < min_ij){
-				min_ij = d;
-			}
-		}
-	}
-
-	for(int h = 0; h < size_j; h++){
-		for(int k = 0; k < size_i, k++){
-			float d = CGAL::squared_distance_3(c_j_samples[h], c_i_samples[k]);
-			if (d < min_ji){
-				min_ji = d;
-			}
-		}
-	}
-
-	return std::max(min_ij, min_ji);
-
-}
 
 
 //nb_profiles "before" p, nb_profiles after p
