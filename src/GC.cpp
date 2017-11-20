@@ -22,6 +22,7 @@ float Haussdorf(Polylines c_i, Polylines c_j){
 	 // how to express MAX_VALUE in C++ ?
 	float min_ji = MAX_VALUE;
 
+	// computes h(c_i, c_j)
 	float max_ij = 0.f;
 	for(int k = 0; k < size_i; k++){
 		float shortest = std::sqrt(CGAL::squared_distance_3(c_i_samples[k], c_j_samples[0]));;
@@ -35,7 +36,7 @@ float Haussdorf(Polylines c_i, Polylines c_j){
 			max_ij = shortest;
 		}
 	}
-
+	// computes h(c_j, c_i)
 	float max_ji = 0.f;
 	for(int h = 0; h < size_j; h++){
 		float shortest = std::sqrt(CGAL::squared_distance_3(c_j_samples[h], c_i_samples[0]));
@@ -50,6 +51,7 @@ float Haussdorf(Polylines c_i, Polylines c_j){
 		}
 	}
 
+	// returns max(h(c_i, c_j), h(c_j, c_i))
 	return std::max(max_ij, max_ji);
 
 }
@@ -60,8 +62,8 @@ float GC::straightness(float C){
 	float epsilon = 0.005f;
 
 	//Create CGAL format for ps, pe, and axis as a line
-	Point_3 _ps(GC.axis.ps[0], GC.axis.ps[1], GC.axis.ps[2]);
-	Point_3 _pe(GC.axis.pe[0], GC.axis.pe[1], GC.axis.pe[2]);
+	Point_3 _ps(GC.ps[0], GC.ps[1], GC.ps[2]);
+	Point_3 _pe(GC.pe[0], GC.pe[1], GC.pe[2]);
 
 	//constains all the control_points ordered by their parameter's value
 	std::vector<controlPoint_t> list;
@@ -95,24 +97,29 @@ controlPoint_t GC::findMaxDistToLine(Point_3 start_point, Point_3 end_point){
 	Line_3 line(start_point, end_point);
 	float max_dist = 0.f;
 	float value = 0.f; //control point paramater
+	int axis_part = 0;
 
-	//Increasing step is 0.01
-	for(int t = 0; t < 100; t++){
-		//Consider point on axis curve
-		Vec3f point = axis.interpolate(t/100.0f);
-		Point_3 _point(point[0], point[1], point[2]);
+	for(int j = 0; j < axis.size(); j++){
+		//Increasing step is 0.01
+		for(int t = 0; t < 100; t++){
+			//Consider point on axis curve
+			Vec3f point = axis[j].interpolate(t/100.0f);
+			Point_3 _point(point[0], point[1], point[2]);
 
-		//Computes distance from point to line
-		float dist = std::sqrt(squared_distance_3(_point, line));
-		if( dist > max_dist){
-			max_dist = dist;
-			control_point = t/100.0f;
+			//Computes distance from point to line
+			float dist = std::sqrt(squared_distance_3(_point, line));
+			if( dist > max_dist){
+				max_dist = dist;
+				control_point = t/100.0f;
+				axis_part = j;
+			}
 		}
 	}
 
 	controlPoint_t control_point;
 	control_point.parameter = parameter;
 	control_point.dist = max_dist;
+	control_point.axis_part = axis_part;
 
 	return control_point;
 }
@@ -125,13 +132,15 @@ float GC::profile_variation(){
 
 	//Sample the axis with a dense set of points.
 	//for loop gives actually 11 points containing p_s and p_e
-	//Calcule profile curves as cross sections with the shape perpendicular to the axis at p
-	for(int i = 0; i <= nb_points; i++){
-		Vec3f p = axis.interpolate(i/nb_points);
-		original_points_sample.push_back(p);
-		Vec3f tangent_at_p = axis.get_tangent(i/nb_points);
-		Vec3f plane_normal_at_p = normalize(tangent_at_p); //The normal of the plane perpendicular to axis at p is the tangeant at p
-		original_profile_curves.push_back(cross_section(plane_normal_at_p, p, shape));
+	//Calcule profile curves as cross sections with the shape perpendicular to the axis at
+	for(int j = 0; j < axis.size(); j++){
+		for(int i = 0; i <= nb_points; i++){
+			Vec3f p = axis[j].interpolate(i/nb_points);
+			original_points_sample.push_back(p);
+			Vec3f tangent_at_p = axis[j].get_tangent(i/nb_points);
+			Vec3f plane_normal_at_p = normalize(tangent_at_p); //The normal of the plane perpendicular to axis at p is the tangeant at p
+			original_profile_curves.push_back(cross_section(plane_normal_at_p, p, shape));
+		}
 	}
 
 	//Align profile curves so they reside on parallel planes (normal_vector(0,1,0))
@@ -180,8 +189,13 @@ float GC::profile_variation(){
 		}
 
 	}else{
-		// do something
+		// TODO: case cos = -1
 	}
+
+	//TODO: Distance to approximated shape
+	//TODO: Sample each profile curves
+	int nb_samples_per_curves = 6;
+
 
 }
 
@@ -189,9 +203,6 @@ float GC::cylindricity(float alpha, float C){
 	float cylindricity = straightness(C) + alpha*profile_variation();
 	return cylindricity;
 }
-
-
-
 
 //nb_profiles "before" p, nb_profiles after p
 void GC::generate_profiles(int nb_profiles, float step) {
@@ -205,4 +216,12 @@ void GC::generate_profiles(int nb_profiles, float step) {
 
 GC GC::merge(GC b){
 
+	HermiteCurve unionOfaxis(axis.pe, axis.te, b.axis.ps, b.axis.ts);
+	std::vector newAxis = axis;
+	newAxis.push_back(unionOfaxis);
+	newAxis.push_back(b.axis);
+	newAxis.insert(newAxis.end(), b.axis.begin(), b.axis.end());
+	GC mergedGC(newAxis, axis.ps, b.axis.pe);
+
+	return mergedGC;
 }

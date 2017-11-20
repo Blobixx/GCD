@@ -8,6 +8,7 @@
 struct controlPoint_t {
 	float parameter;
 	float dist;
+	int axis_part; // component of the axis the point belongs to
 }
 
 class GC {
@@ -15,14 +16,19 @@ class GC {
 	public:
 
 		Vec3f p; //Point p for which the GC has been constructed at
-		HermiteCurve axis; //Axis = list of control points
-		Vec3f p_s; //Starting point of this axis
-		Vec3f p_e; //End point of the axis
+		std::vector<HermiteCurve> axis; //Axis = list of control points
+		Vec3f ps; //Starting point of this axis
+		Vec3f pe; //End point of the axis
 		const char* shape = "gecko.off";
 		std::vector<Polylines> profiles; //Set of profiles curves of GC
 
 		GC(){}
-		GC(Vec3f _axis, Polylines _profiles){
+		GC(std::vector<HermiteCurve> _axis, Vec3f _ps, Vec3f _pe){
+			GC.axis = _axis;
+			ps = _ps;
+			pe = _pe;
+		}
+		GC(std::vector<HermiteCurve> _axis, Polylines _profiles){
 			GC.axis = _axis;
 			GC.profiles = _profiles;
 		}

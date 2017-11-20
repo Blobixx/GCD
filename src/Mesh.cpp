@@ -27,7 +27,7 @@ void Mesh::loadMesh (const std::string & filename) {
     vertices.clear ();
     triangles.clear();
 	ifstream in (filename.c_str ());
-    if (!in) 
+    if (!in)
         exit (1);
 
     unsigned int sizeV, sizeT, tmp1, tmp2, tmp3; //because 0 at end of each lines
@@ -45,7 +45,7 @@ void Mesh::loadMesh (const std::string & filename) {
     char feature2;
     for (unsigned int i = 0; i < sizeT; i++) {
          in >> feature2;
-        for (unsigned int j = 0; j < 3; j++){ 
+        for (unsigned int j = 0; j < 3; j++){
             in >> triangles[i][j];
         }
         //cout << "x: " << triangles[i][0] <<" y: " <<triangles[i][1] << " z: "<< triangles[i][2] << std::endl;

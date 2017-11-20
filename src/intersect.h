@@ -1,3 +1,5 @@
+// Adapted from CGAL examples
+
 #ifndef INTERSECT_H
 #define INTERSECT_H
 
@@ -24,8 +26,8 @@ Polylines cross_section(Vec3f normal, Vec3f p, const char* filename){
         return polylines;
     }
     // Slicer constructor from the mesh
-    CGAL::Polygon_mesh_slicer<CGAL_Mesh, K> slicer(mesh); 
-    
+    CGAL::Polygon_mesh_slicer<CGAL_Mesh, K> slicer(mesh);
+
     float a = normal[0];
     float b = normal[1];
     float c = normal[2];
@@ -36,10 +38,5 @@ Polylines cross_section(Vec3f normal, Vec3f p, const char* filename){
 
     return polylines;
 }
-
-float HaussdorfDistance(Point_3 a, Point_3 b){
-    
-}
-
 
 #endif //INTERSECT_H
