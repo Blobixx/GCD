@@ -7,6 +7,7 @@
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/Polygon_mesh_slicer.h>
 #include <fstream>
+#include "Vec3.h"
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 typedef CGAL::Surface_mesh<K::Point_3> CGAL_Mesh;
@@ -14,6 +15,7 @@ typedef std::vector<K::Point_3> Polyline_type;
 //typedef std::list< Polyline_type > Polylines;
 typedef std::vector<Polyline_type > Polylines;
 typedef K::Point_3 Point_3;
+typedef K::Plane_3 Plane_3;
 
 Polylines cross_section(Vec3f normal, Vec3f p, const char* filename){
 
@@ -34,7 +36,7 @@ Polylines cross_section(Vec3f normal, Vec3f p, const char* filename){
     float d = -a*p[0] - b*p[1] - c*p[2];
 
     //Equation of plane is a*x + b*y + c*z + d = 0
-    slicer(K::Plane_3(a, b, c, d), std::back_inserter(polylines));
+    slicer(Plane_3(a, b, c, d), std::back_inserter(polylines));
 
     return polylines;
 }

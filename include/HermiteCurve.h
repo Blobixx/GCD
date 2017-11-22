@@ -1,3 +1,6 @@
+#ifndef HERMITECURVE_H
+#define HERMITECURVE_H
+
 #include "Vec3.h"
 
 class HermiteCurve {
@@ -33,3 +36,4 @@ class HermiteCurve {
 			return _value;
 		}
 };
+#endif // HERMITECURVE_H
