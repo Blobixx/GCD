@@ -10,6 +10,7 @@
 #define CAMERA_H
 
 #include "Vec3.h"
+#include "Trackball.h"
 
 class Camera {
 public:

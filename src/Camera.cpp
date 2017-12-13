@@ -10,6 +10,8 @@
 #include "Camera.h"
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
+//#include <GL/gl.h>
+//#include <GL/glu.h>
 #include <iostream>
 
 using namespace std;
@@ -31,7 +33,9 @@ Camera::Camera () {
   moving = 0;
   beginu = 0;
   beginv = 0;
-    x = y = z = 0.0;
+  
+  trackball (curquat, 0.0, 0.0, 0.0, 0.0);
+  x = y = z = 0.0;
   _zoom = 3.0;
 }
 
@@ -97,7 +101,15 @@ void Camera::beginRotate (int u, int v) {
 
 void Camera::rotate (int u, int v) {
   if (moving) {
-    
+    trackball(lastquat,
+        (2.0 * beginu - W) / W,
+        (H - 2.0 * beginv) / H,
+        (2.0 * u - W) / W,
+        (H - 2.0 * v) / H);
+    beginu = u;
+    beginv = v;
+    spinning = 1;
+    add_quats (lastquat, curquat, curquat);
   }
 }
 
@@ -116,6 +128,7 @@ void Camera::apply () {
   glLoadIdentity();
   glTranslatef (x, y, z);
   GLfloat m[4][4]; 
+  build_rotmatrix(m, curquat);
   glTranslatef (0.0, 0.0, -_zoom);
   glMultMatrixf(&m[0][0]);
 }
@@ -123,6 +136,7 @@ void Camera::apply () {
 
 void Camera::getPos (float & X, float & Y, float & Z) {
   GLfloat m[4][4]; 
+  build_rotmatrix(m, curquat);
   float _x = -x;
   float _y = -y;
   float _z = -z + _zoom;

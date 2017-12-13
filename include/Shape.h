@@ -10,15 +10,20 @@
 #include "GC.h"
 #include "Vec3.h"
 #include "Mesh.h"
-#include "tiny_obj_loader.h"
 
 class Shape {
 
 	public:
 
-		Mesh mesh;
-		std::vector<Vec3f> loadPointCloud();
-		std::vector<Vec3f> findRosaPlane(Vec3f p); //find rosa plane at point p. Returns plane's normal.
+		CGAL_Mesh mesh;
+		Shape(){}
+		std::vector<GC> localGCs;
+		// std::vector<Vec3f> loadPointCloud();
+		// // Find rosa plane at point p. Returns plane's normal.
+		// std::vector<Vec3f> findRosaPlane(Vec3f p);
+		void initLocalGCs(const char* pointsFile, const char* normalsFile, float espilon, int nbProfiles);
+		// void constructLocalGCs(float epsilon, int nbProfiles);
+
 };
 
 #endif // SHAPE_H

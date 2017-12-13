@@ -9,7 +9,8 @@
 // All rights reserved.                                                       
 // --------------------------------------------------------------------------
 
-#pragma once
+#ifndef VEC3_H
+#define VEC3_H
 
 #include <cmath>
 #include <iostream>
@@ -337,3 +338,5 @@ std::istream & operator>> (std::istream & input, Vec3<T> & v) {
 typedef Vec3<float> Vec3f;
 typedef Vec3<double> Vec3d;
 typedef Vec3<int> Vec3i;
+
+#endif // VEC3_H

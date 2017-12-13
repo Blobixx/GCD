@@ -18,70 +18,58 @@
 using namespace std;
 
 void Mesh::clear () {
-    vertices.clear ();
-    normals.clear ();
-    triangles.clear ();
+    V.clear ();
+    T.clear ();
 }
 
-void Mesh::loadMesh (const std::string & filename) {
-    vertices.clear ();
-    triangles.clear();
-	ifstream in (filename.c_str ());
-    if (!in)
-        exit (1);
-
-    unsigned int sizeV, sizeT, tmp1, tmp2, tmp3; //because 0 at end of each lines
-    in >> sizeV >> sizeT;
-    cout << "size V: " << sizeV <<", sizeT: "<<sizeT << std::endl;
-    vertices.resize (sizeV);
-    triangles.resize (sizeT);
-    float x, y, z;
-    char feature; // f or v
-    for (unsigned int i = 0; i < sizeV; i++){
-        in >> feature >> x >> y >> z;// >> tmp1 >> tmp2 >> tmp3 ;
-        //cout << "x: " << x <<" y: " <<y << " z: "<< z << std::endl;
-        vertices[i] = Vec3f(x,y,z);
-    }
-    char feature2;
-    for (unsigned int i = 0; i < sizeT; i++) {
-         in >> feature2;
-        for (unsigned int j = 0; j < 3; j++){
-            in >> triangles[i][j];
-        }
-        //cout << "x: " << triangles[i][0] <<" y: " <<triangles[i][1] << " z: "<< triangles[i][2] << std::endl;
-    }
-
-    in.close ();
-    centerAndScaleToUnit ();
-    recomputeNormals ();
-}
-
-void Mesh::recomputeNormals () {
-    normals.clear ();
-    normals.resize (vertices.size (), Vec3f (0.f, 0.f, 0.f));
-    for (unsigned int i = 0; i < triangles.size (); i++) {
-        Vec3f e01 = vertices[triangles[i][1]] -  vertices[triangles[i][0]];
-        Vec3f e02 = vertices[triangles[i][2]] -  vertices[triangles[i][0]];
-        Vec3f n = cross (e01, e02);
+void Mesh::recomputeNormals() {
+    for (unsigned int i = 0; i < V.size (); i++)
+        V[i].n = Vec3f (0.0, 0.0, 0.0);
+    for (unsigned int i = 0; i < T.size (); i++) {
+        Vec3f e01 = V[T[i].v[1]].p -  V[T[i].v[0]].p;
+        Vec3f e02 = V[T[i].v[2]].p -  V[T[i].v[0]].p;
+        Vec3f n = cross(e01, e02);
         n.normalize ();
         for (unsigned int j = 0; j < 3; j++)
-            normals[triangles[i][j]] += n;
+            V[T[i].v[j]].n += n;
     }
-    for (unsigned int i = 0; i < normals.size (); i++)
-        normals[i].normalize ();
+    for (unsigned int i = 0; i < V.size (); i++)
+        V[i].n.normalize ();
 }
 
-void Mesh::centerAndScaleToUnit () {
+void Mesh::centerAndScaleToUnit() {
     Vec3f c;
-    for  (unsigned int i = 0; i < vertices.size (); i++)
-        c += vertices[i];
-    c /= vertices.size ();
-    float maxD = dist (vertices[0], c);
-    for (unsigned int i = 0; i < vertices.size (); i++){
-        float m = dist (vertices[i], c);
+    for  (unsigned int i = 0; i < V.size (); i++)
+        c += V[i].p;
+    c /= V.size ();
+    float maxD = dist(V[0].p, c);
+    for (unsigned int i = 0; i < V.size (); i++){
+        float m = dist(V[i].p, c);
         if (m > maxD)
             maxD = m;
     }
-    for  (unsigned int i = 0; i < vertices.size (); i++)
-        vertices[i] = (vertices[i] - c) / maxD;
+    for  (unsigned int i = 0; i < V.size (); i++)
+        V[i].p = (V[i].p - c) / maxD;
+}
+
+void Mesh::loadOFF (const std::string & filename) {
+    ifstream in (filename.c_str ());
+    if (!in) 
+        exit (EXIT_FAILURE);
+    std::string offString;
+    unsigned int sizeV, sizeT, tmp;
+    in >> offString >> sizeV >> sizeT >> tmp;
+    V.resize (sizeV);
+    T.resize (sizeT);
+    for (unsigned int i = 0; i < sizeV; i++)
+        in >> V[i].p;
+    int s;
+    for (unsigned int i = 0; i < sizeT; i++) {
+        in >> s;
+        for (unsigned int j = 0; j < 3; j++)
+            in >> T[i].v[j];
+    }
+    in.close ();
+    centerAndScaleToUnit ();
+    recomputeNormals ();
 }

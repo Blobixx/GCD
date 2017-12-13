@@ -85,12 +85,12 @@ float GC::profileVariation(){
 	for(int j = 0; j < axis.size(); j++){
 		HermiteCurve hermite_curve = axis[j];
 		for(int i = 0; i <= nb_points; i++){
-			Vec3f p = hermite_curve.interpolate(i/nb_points);
-			original_centroids.push_back(p);
-			Vec3f tangent_at_p = hermite_curve.get_tangent(i/nb_points);
-			Vec3f orth_plane_at_p = normalize(tangent_at_p); //The normal of the plane perpendicular to axis at p is the tangeant at p
-			original_profiles.push_back(Utils::cross_section(orth_plane_at_p, p, shape));
-			orth_planes.push_back(orth_plane_at_p);
+			Vec3f s = hermite_curve.interpolate(i/nb_points);
+			original_centroids.push_back(s);
+			Vec3f tangent_at_s = hermite_curve.get_tangent(i/nb_points);
+			Vec3f orth_plane_at_s = normalize(tangent_at_s); //The normal of the plane perpendicular to axis at p is the tangeant at p
+			original_profiles.push_back(Utils::cross_section(orth_plane_at_s, s, shape));
+			orth_planes.push_back(orth_plane_at_s);
 		}
 	}
 
@@ -157,7 +157,7 @@ float GC::profileVariation(){
 	int min_polytype_size = poly_type.size();
 	for(int i = 0; i < aligned_profiles.size(); i++){
 		Polylines _poly = aligned_profiles[i];
-		for(int j = 0; j < poly.size(); j++){
+		for(int j = 0; j < _poly.size(); j++){
 			Polyline_type _poly_type = _poly[j];
 			int s = _poly_type.size();
 			if( s < min_polytype_size){
@@ -304,4 +304,23 @@ GC GC::merge(GC b){
 	GC mergedGC(newAxis, ps, b.pe);
 
 	return mergedGC;
+}
+
+std::vector<Point_3> GC::getAllPoints(){
+
+	std::vector<Point_3> allPoints;
+	for(int i = 0; i < profiles.size(); i++){
+
+		Polylines poly = profiles[i];
+		for(int j = 0; j < poly.size(); j++){
+
+			Polyline_type poly_type = poly[j];
+			for(int k = 0; k < poly_type.size(); k++){
+
+				allPoints.push_back(poly_type[k]);
+			}
+		}
+	}
+	// std::cout << "getAllPoints(). nb points: " << allPoints.size() << std::endl;
+	return allPoints;
 }

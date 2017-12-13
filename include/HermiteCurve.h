@@ -35,5 +35,13 @@ class HermiteCurve {
 
 			return _value;
 		}
+
+		inline HermiteCurve& operator= (const HermiteCurve & _axis) {
+                ps = _axis.ps;
+                pe = _axis.pe;
+                ts = _axis.ts;
+                te = _axis.te;
+                return (*this);
+        };
 };
 #endif // HERMITECURVE_H

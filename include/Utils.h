@@ -1,5 +1,5 @@
-#ifndef MESH_H
-#define MESH_H
+#ifndef UTILS_H
+#define UTILS_H
 
 #include <iostream>
 #include <fstream>
@@ -18,7 +18,7 @@
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 typedef K::Point_3  Point_3;
-typedef CGAL::Surface_mesh<K::Point_3> CGAL_Mesh;
+typedef CGAL::Surface_mesh<Point_3> CGAL_Mesh;
 typedef std::vector<K::Point_3> Polyline_type;
 typedef std::vector<Polyline_type > Polylines;
 typedef CGAL::cpp11::array<std::size_t,3> Facet;
@@ -79,6 +79,7 @@ class Utils{
 		  return m;
 		}
 
+		// Filename need to be .off format
 		static Polylines cross_section(Vec3f normal, Vec3f p, const char* filename){
 
 		    Polylines polylines;
@@ -161,6 +162,7 @@ class Utils{
 			return std::max(max_ij, max_ji);
 
 		}
+
 };
 
-#endif //MESH_H
+#endif //UTILS_H

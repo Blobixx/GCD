@@ -22,22 +22,13 @@
 #include <cstdlib>
 
 #include <algorithm>
-#include "Camera.h"
-//#include "Mesh.h"
-#include "tiny_obj_loader.h"
-
-#ifdef __APPLE__
-#include <OpenGL/gl.h>
-#include <OpenGL/glu.h>
 #include <GLUT/glut.h>
-#else
-#ifdef _WIN32
-  #include <windows.h>
-#endif
-#include <GL/gl.h>
-#include <GL/glu.h>
-#include <GL/glut.h>
-#endif
+//#include <GL/glut.h> //not good for mac
+#include "Vec3.h"
+#include "Camera.h"
+#include "Mesh.h"
+#include "Shape.h"
+#include "Utils.h"
 
 using namespace std;
 
@@ -56,33 +47,11 @@ static int lastX=0, lastY=0, lastZoom=0;
 static unsigned int FPS = 0;
 static bool fullScreen = false;
 
-static vector<tinyobj::shape_t> shapes;
-static vector<tinyobj::material_t> materials;
-static Vec3f sceneCenter = Vec3f (0.f, 0.f, 0.f);
-static float sceneRadius = 1.f;
-static Vec3f lightPos = Vec3f (1.f, 1.f, 1.f);
-static Vec3f lightColor = Vec3f (1.f, 1.f, 1.f);
-
-
-//Mesh mesh;
-
-class Vertex {
-public:
-    inline Vertex () {}
-    inline Vertex (const Vec3f & p, const Vec3f & n) : p (p), n (n) {}
-    inline Vertex (const Vertex & v) : p (v.p), n (v.n) {}
-    inline virtual ~Vertex () {}
-    inline Vertex & operator= (const Vertex & v) {
-        p = v.p;
-        n = v.n;
-        return (*this);
-    }
-    Vec3f p;
-    Vec3f n;
-};
+Mesh mesh;
+std::vector<CGAL_Mesh> meshes;
 
 void printUsage () {
-    cerr << endl 
+    cerr << endl
          << "gMini: a minimal OpenGL/GLUT application" << endl
          << "for 3D graphics." << endl 
          << "Author : Tamy Boubekeur (http://www.labri.fr/~boubek)" << endl << endl
@@ -100,7 +69,7 @@ void printUsage () {
 }
 
 void usage () {
-    //printUsage ();
+    printUsage ();
     exit (EXIT_FAILURE);
 }
 
@@ -109,68 +78,77 @@ void usage () {
 // ------------------------------------
 
 void initLight () {
-    // GLfloat light_position1[4] = {22.0f, 16.0f, 50.0f, 0.0f};
-    // GLfloat direction1[3] = {-52.0f,-16.0f,-50.0f};
+    GLfloat light_position1[4] = {22.0f, 16.0f, 50.0f, 0.0f};
+    GLfloat direction1[3] = {-52.0f,-16.0f,-50.0f};
     // GLfloat color1[4] = {0.5f, 1.0f, 0.5f, 1.0f};
     // GLfloat ambient[4] = {0.3f, 0.3f, 0.3f, 0.5f};
-  
-    // glLightfv (GL_LIGHT1, GL_POSITION, light_position1);
-    // glLightfv (GL_LIGHT1, GL_SPOT_DIRECTION, direction1);
-    // glLightfv (GL_LIGHT1, GL_DIFFUSE, color1);
-    // glLightfv (GL_LIGHT1, GL_SPECULAR, color1);
+    GLfloat color1[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+    glLightfv (GL_LIGHT1, GL_POSITION, light_position1);
+    glLightfv (GL_LIGHT1, GL_SPOT_DIRECTION, direction1);
+    glLightfv (GL_LIGHT1, GL_DIFFUSE, color1);
+    glLightfv (GL_LIGHT1, GL_SPECULAR, color1);
     // glLightModelfv (GL_LIGHT_MODEL_AMBIENT, ambient);
-    // glEnable (GL_LIGHT1);
-    // glEnable (GL_LIGHTING);
-    lightPos = Vec3f(0.f,sceneRadius/2.f,sceneRadius) ;
-      glEnable (GL_LIGHTING);
-      GLfloat position[4] = {lightPos[0], lightPos[1], lightPos[2], 1.0f};
-      GLfloat color[4] = {lightColor[0], lightColor[1], lightColor[2], 1.0f};
-      glLightfv (GL_LIGHT0, GL_POSITION, position);
-      glLightfv (GL_LIGHT0, GL_DIFFUSE, color);
-      glLightfv (GL_LIGHT0, GL_SPECULAR, color);
-      glEnable (GL_LIGHT0);
+    glEnable (GL_LIGHT1);
+    glEnable (GL_LIGHTING);
+}
+
+void init (const char * modelFilename) {
+    camera.resize (SCREENWIDTH, SCREENHEIGHT);
+    mesh.loadOFF (modelFilename);
+    initLight ();
+    glCullFace (GL_BACK);
+    glEnable (GL_CULL_FACE);
+    glDepthFunc (GL_LESS);
+    glEnable (GL_DEPTH_TEST);
+    glClearColor (0.2f, 0.2f, 0.3f, 1.0f);
+    glEnable (GL_COLOR_MATERIAL); // Dont forget this if you want to use glColor3f
 }
 
 
 // ------------------------------------
-// Replace the code of this 
-// functions for cleaning memory, 
+// Replace the code of this
+// functions for cleaning memory,
 // closing sockets, etc.
 // ------------------------------------
 
 void clear () {
-  
+
 }
 
 // ------------------------------------
-// Replace the code of this 
+// Replace the code of this
 // functions for alternative rendering.
 // ------------------------------------
 
 void draw () {
-    glBegin(GL_TRIANGLES);
-    
-    for (size_t s = 0; s < shapes.size (); s++){
-        for (size_t f = 0; f < shapes[s].mesh.indices.size() / 3; f++) {
-            // if (!materials.empty ()) {
-            //     unsigned int i = shapes[s].mesh.material_ids[f];
-            //     glColor3f (materials[i].diffuse[0], materials[i].diffuse[1], materials[i].diffuse[2]);
-            // }
-            for (size_t v = 0; v  < 3; v++) {
-                unsigned int index = 3*shapes[s].mesh.indices[3*f+v];
-                glColor3f (1.f, 0.f, 0.f);
-                glNormal3f (shapes[s].mesh.normals[index],
-                            shapes[s].mesh.normals[index+1],
-                            shapes[s].mesh.normals[index+2]);
-                glVertex3f (shapes[s].mesh.positions[index],
-                            shapes[s].mesh.positions[index+1],
-                            shapes[s].mesh.positions[index+2]);
-            }
+
+    glBegin (GL_TRIANGLES);
+    for (unsigned int i = 0; i < mesh.T.size (); i++){
+        for (unsigned int j = 0; j < 3; j++) {
+            const Vertex & v = mesh.V[mesh.T[i].v[j]];
+            glColor3f(0.60f, 0.6f, 1.0f);
+            glNormal3f (v.n[0], v.n[1], v.n[2]);
+            glVertex3f (v.p[0], v.p[1], v.p[2]);
+        }
+    }
+
+    for(int index = 0; index < meshes.size(); index++){
+        CGAL_Mesh gc = meshes[index];
+        /*CGAL_Mesh::Vertex_range r = gc.vertices();
+        CGAL_Mesh::Vertex_range::iterator it = r.begin();
+        CGAL_Mesh::Vertex_range::iterator end = r.end();
+        for(; it != end; ++it){
+            CGAL_Mesh::Vertex_index vertex = *it;
+            Point_3 point = vertex.point();
+            glVertex3f(point.x(), point.y(), point.z());
+        }*/
+        BOOST_FOREACH(CGAL_Mesh::Vertex_index vd, gc.vertices()){
+            Point_3 point =  gc.point(vd);
+            glColor3f(0.6f, 0.0f, 0.4f);
+            glVertex3f(point.x(), point.y(), point.z());
         }
     }
     glEnd ();
-    glFlush (); // Ensures any previous OpenGL call has been executed
-    glutSwapBuffers ();  // swap the render buffer and the displayed (screen) one
 }
 
 void display () {
@@ -178,23 +156,21 @@ void display () {
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     camera.apply ();
     draw ();
-    //glFlush ();
-    //glutSwapBuffers ();
+    glFlush ();
+    glutSwapBuffers ();
 }
-
-
 
 void idle () {
     static float lastTime = glutGet ((GLenum)GLUT_ELAPSED_TIME);
     static unsigned int counter = 0;
-    counter++;
+    counter++;;
     float currentTime = glutGet ((GLenum)GLUT_ELAPSED_TIME);
     if (currentTime - lastTime >= 1000.0f) {
         FPS = counter;
         counter = 0;
         static char winTitle [64];
-        // unsigned int numOfTriangles = mesh.triangles.size ();
-        // sprintf (winTitle, "gmini - Num. Of Tri.: %d - FPS: %d", numOfTriangles, FPS);
+        unsigned int numOfTriangles = mesh.T.size ();
+        sprintf (winTitle, "gmini - Num. Of Tri.: %d - FPS: %d", numOfTriangles, FPS);
         glutSetWindowTitle (winTitle);
         lastTime = currentTime;
     }
@@ -211,7 +187,7 @@ void key (unsigned char keyPressed, int x, int y) {
         } else {
             glutFullScreen ();
             fullScreen = true;
-        }      
+        }
         break;
     case 'q':
     case 27:
@@ -224,8 +200,26 @@ void key (unsigned char keyPressed, int x, int y) {
     case 'g':
         glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
         break;
+    case 's':
+
+        //vector<float> rad (mesh.V.size (), 0.0);
+        for (unsigned int i = 0; i < mesh.V.size (); i++) {
+            Vec3f pl = l - mesh.V[i].p;
+            pl.normalize ();
+            float rad/*[i]*/ = max (dot(mesh.V[i].n, pl), 0.0f);
+            mesh.V[i].n *= rad/*[i]*/;
+        }
+        break;
+    case 'a':
+        if (mouseZoomPressed == false) {
+                lastZoom = y;
+                mouseMovePressed = false;
+                mouseRotatePressed = false;
+                mouseZoomPressed = true;
+        }
+        break;
     default:
-        printUsage ();
+        // printUsage ();
         break;
     }
     idle ();
@@ -248,7 +242,7 @@ void mouse (int button, int state, int x, int y) {
             mouseMovePressed = true;
             mouseRotatePressed = false;
             mouseZoomPressed = false;
-        } else if (button == GLUT_MIDDLE_BUTTON) {
+        } else if (button == GLUT_KEY_F1) {
             if (mouseZoomPressed == false) {
                 lastZoom = y;
                 mouseMovePressed = false;
@@ -280,127 +274,53 @@ void reshape(int w, int h) {
     camera.resize (w, h);
 }
 
-void computeSceneNormals () {
-  for (unsigned int s = 0; s < shapes.size (); s++)
-    if (shapes[s].mesh.normals.empty ()) {
-      shapes[s].mesh.normals.resize (shapes[s].mesh.positions.size (), 0.f);
-      for (size_t f = 0; f < shapes[s].mesh.indices.size() / 3; f++) {
-        Vec3f q[3];
-        for (size_t v = 0; v < 3; v++) {
-          unsigned int index = 3*shapes[s].mesh.indices[3*f+v];
-          for (unsigned int i = 0; i < 3; i++)
-            q[v][i] = shapes[s].mesh.positions[index+i];
-        }
-        Vec3f e01 = q[1] - q[0];
-        Vec3f e02 = q[2] - q[0];
-        Vec3f nf = normalize (cross (e01, e02));
-        for (size_t v = 0; v < 3; v++) {
-          unsigned int index = 3*shapes[s].mesh.indices[3*f+v];
-          for (unsigned int i = 0; i < 3; i++)
-            shapes[s].mesh.normals[index+i] += nf[i];
-        }
-      }
-      for (unsigned int i = 0; i < shapes[s].mesh.normals.size () / 3; i++) {
-        Vec3f n;
-        for (unsigned int j = 0; j < 3; j++)
-          n[j] = shapes[s].mesh.normals[3*i+j];
-        n.normalize ();
-        for (unsigned int j = 0; j < 3; j++)
-          shapes[s].mesh.normals[3*i+j] = n[j];
-      }
+void initMeshes(int argc, char **argv, const char *filename){
+    Shape *shape = new Shape();
+    std::ifstream input(filename);
+    input >> shape->mesh;
+    shape->initLocalGCs(argv[1], argv[2], 0.001f, 2);
+    // shape->constructLocalGCs(0.001f, 2);
+    int nbLocalGCs = shape->localGCs.size();
+    std::cout << "There is " << nbLocalGCs << " local GCs." << std::endl;
+    for(int index = 0; index < nbLocalGCs; index++){
+        std::vector<Point_3> GC_points = shape->localGCs[index].getAllPoints();
+        /*if( index < 10){
+            std::cout << index <<": "<< GC_points.size() <<", ";
+        }*/
+        meshes.push_back(Utils::generateMesh(GC_points));
+        // std::cout << "mesh n°" << index <<" added" << std::endl;
     }
 }
 
-
-void computeSceneBoundingSphere () {
-    sceneCenter = Vec3f (0.f, 0.f, 0.f);
-    unsigned int count = 0;
-    for (unsigned int s = 0; s < shapes.size (); s++){
-        for (unsigned int p = 0; p < shapes[s].mesh.positions.size () / 3; p++) {
-            sceneCenter += Vec3f (shapes[s].mesh.positions[3*p],
-                            shapes[s].mesh.positions[3*p+1],
-                            shapes[s].mesh.positions[3*p+2]);
-            count++;
-        }
-    }
-    sceneCenter /= count;
-
-    for (unsigned int s = 0; s < shapes.size (); s++){
-        for (unsigned int p = 0; p < shapes[s].mesh.positions.size () / 3; p++)
-        {
-          shapes[s].mesh.positions[3*p] -= sceneCenter[0];
-          shapes[s].mesh.positions[3*p+1] -= sceneCenter[1];
-          shapes[s].mesh.positions[3*p+2] -= sceneCenter[2];
-        }
-    }
-  sceneCenter = Vec3f (0.f, 0.f, 0.f);
-
-  sceneRadius = 0.f;
-    for (unsigned int s = 0; s < shapes.size (); s++){
-        for (unsigned int p = 0; p < shapes[s].mesh.positions.size () / 3; p++) {
-          float d = dist (sceneCenter, Vec3f (shapes[s].mesh.positions[3*p],
-                                              shapes[s].mesh.positions[3*p+1],
-                                              shapes[s].mesh.positions[3*p+2]));
-            if (d > sceneRadius){
-                sceneRadius = d;
-            }
-        }
-    }
-}
-
-// Loads an OBJ file using tinyOBJ (http://syoyo.github.io/tinyobjloader/)
-bool loadScene(const string & filename, const string & basepath = "") {
-    shapes.clear ();
-    materials.clear ();
-    std::cout << "Loading " << filename << std::endl;
-    std::string err = tinyobj::LoadObj(shapes, materials, filename.c_str (), basepath.c_str ());
-    if (!err.empty()) {
-        std::cerr << err << std::endl;
-        return false;
-    }
-    std::cout << "shapes size: " << shapes.size() << std::endl;
-    std::cout << "positions size: " << shapes[0].mesh.positions.size() << std::endl;
-    std::cout << "normals size: " << shapes[0].mesh.normals.size() << std::endl;
-    //std::cout << "shapes size: " << shpaes.size() << std::endl;
-
-    computeSceneNormals ();
-    computeSceneBoundingSphere ();
-    return true;
-}
-
-void init (const char* _filename) {
-    camera.resize (SCREENWIDTH, SCREENHEIGHT);
-    //mesh.loadMesh (modelFilename);
-    string filename = _filename;
-    unsigned int i = filename.find_last_of ("/");
-    loadScene (filename, filename.substr (0, i+1));
-    initLight ();
-    glCullFace (GL_BACK);
-    glEnable (GL_CULL_FACE);
-    glDepthFunc (GL_LESS);
-    glEnable (GL_DEPTH_TEST);
-    //glClearColor (0.2f, 0.2f, 0.3f, 1.0f);
-    glClearColor (0.f, 0.f, 0.f, 1.0f);
-}
-
-int main (int argc, char ** argv) {
-    if (argc > 2) {
-        printUsage ();
-        exit (EXIT_FAILURE);
-    }
+void initGlut(int argc, char **argv){
     glutInit (&argc, argv);
     glutInitDisplayMode (GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
     glutInitWindowSize (SCREENWIDTH, SCREENHEIGHT);
-    window = glutCreateWindow ("Obj Viewer");  
-    init(argc == 2 ? argv[1] : "cube.obj");
+    window = glutCreateWindow ("GCD Viewer");
+
+    const char *filename = argc == 4 ? argv[1] : "../hand_mesh.off";
+
+    initMeshes(argc, argv, filename);
+    init(filename);
+
     glutIdleFunc (idle);
     glutDisplayFunc (display);
     glutKeyboardFunc (key);
     glutReshapeFunc (reshape);
     glutMotionFunc (motion);
     glutMouseFunc (mouse);
-    key ('?', 0, 0);   
+    key ('?', 0, 0);
     glutMainLoop ();
+}
+
+int main (int argc, char ** argv) {
+    if (argc != 3) {
+        // printUsage ();
+        std::cout << "Wrong number of inputs" << std::endl;
+        exit (EXIT_FAILURE);
+    }
+    initGlut(argc, argv);
+
     return EXIT_SUCCESS;
 }
 

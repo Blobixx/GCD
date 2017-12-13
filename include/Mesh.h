@@ -1,50 +1,73 @@
 // --------------------------------------------------------------------------
 // Copyright(C) 2009-2016
 // Tamy Boubekeur
-// 
-// Permission granted to use this code only for teaching projects and 
+//
+// Permission granted to use this code only for teaching projects and
 // private practice.
 //
-// Do not distribute this code outside the teaching assignements.                                                                           
-// All rights reserved.                                                       
+// Do not distribute this code outside the teaching assignements.
+// All rights reserved.
 // --------------------------------------------------------------------------
 #ifndef MESH_H
 #define MESH_H
 
 #include <cmath>
 #include <vector>
+#include <string>
 #include "Vec3.h"
-#include "Triangle.h"
 
-/// A Mesh class, storing a list of vertices and a list of triangles indexed over it.
+class Vertex {
+public:
+    inline Vertex () {}
+    inline Vertex (const Vec3f & p, const Vec3f & n) : p (p), n (n) {}
+    inline Vertex (const Vertex & v) : p (v.p), n (v.n) {}
+    inline virtual ~Vertex () {}
+    inline Vertex & operator= (const Vertex & v) {
+        p = v.p;
+        n = v.n;
+        return (*this);
+    }
+    Vec3f p;
+    Vec3f n;
+};
+
+class Triangle {
+public:
+    inline Triangle () {
+        v[0] = v[1] = v[2] = 0;
+    }
+    inline Triangle (const Triangle & t) {
+        v[0] = t.v[0];
+        v[1] = t.v[1];
+        v[2] = t.v[2];
+    }
+    inline Triangle (unsigned int v0, unsigned int v1, unsigned int v2) {
+        v[0] = v0;
+        v[1] = v1;
+        v[2] = v2;
+    }
+    inline virtual ~Triangle () {}
+    inline Triangle & operator= (const Triangle & t) {
+        v[0] = t.v[0];
+        v[1] = t.v[1];
+        v[2] = t.v[2];
+        return (*this);
+    }
+    unsigned int v[3];
+};
+
 class Mesh {
 public:
     inline Mesh () {}
     inline virtual ~Mesh () {}
+    std::vector<Vertex> V;
+    std::vector<Triangle> T;
 
-    /*inline std::vector<Vec3f> & vertices () { return _vertices; }
-    inline const std::vector<Vec3f> & vertices () const { return _vertices; }
-    inline  std::vector<Vec3f> & normals () { return _normals; }
-    inline const std::vector<Vec3f> & normals () const { return _normals; }
-    inline std::vector<Triangle> triangles () { return _triangles; }
-    inline const std::vector<Triangle> & triangles () const { return _triangles; }*/
-
-    /// Empty the positions, normals and triangles arrays.
-    void clear ();
-
-	/// Loads the mesh from a <file>.off or <file>.obj
-	void loadMesh (const std::string & filename);
-
-    
-    /// Compute smooth per-vertex normals
+    void loadOFF (const std::string & filename);
     void recomputeNormals ();
-
-    /// scale to the unit cube and center at original
     void centerAndScaleToUnit ();
-
-    std::vector<Vec3f> vertices;
-    std::vector<Vec3f> normals;
-    std::vector<Triangle> triangles;
+    // void scaleUnit ();
+    void clear ();
 };
 
 #endif // MESH_H
