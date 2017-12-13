@@ -6,24 +6,61 @@
 float GC::straightness(float C){
 
 	float straightness = C;
-	float epsilon = 0.005f;
+	float epsilon = 0.0000003f;
 
-	//Create CGAL format for ps, pe, and axis as a line
+	// Conversion from Vec3f to  CGAL Point_3
+	// Useful to be able to use the CGAL function dist to line.
 	Point_3 _ps(ps[0], ps[1], ps[2]);
 	Point_3 _pe(pe[0], pe[1], pe[2]);
 
-	//constains all the control_points ordered by their parameter's value
+	// Constains all the control_points ordered by their parameter's value
 	std::vector<controlPoint_t> list;
-
+	// Adds ps to list. ps belongs to axis_part n°0
+	controlPoint_t psControlPoint;
+	psControlPoint.dist = 0.0f;
+	psControlPoint.parameter = 0.0f;
+	psControlPoint.axis_part = 0;
+	list.push_back(psControlPoint);
+	// Adds pe to list. ps belongs to axis_part n°0
+	controlPoint_t peControlPoint;
+	peControlPoint.dist = 0.0f;
+	peControlPoint.parameter = 1.0f;
+	peControlPoint.axis_part = axis.size()-1;
+	list.push_back(peControlPoint);
+	// TODO: add a Point_3 to the controlPoint_t struct so I dont
+	// have to recompute it each time
 	bool done = false;
 	while( !done ){
 
-		controlPoint_t control_point = findMaxDistToLine(_ps, _pe);
-		if(control_point.dist > epsilon){
+		controlPoint_t maxControlPt;
+		maxControlPt.dist = 0;
+
+		for(int index = 0; index < list.size()-1; index++){
+			controlPoint_t controlPtA = list[index];
+			controlPoint_t controlPtB = list[index+1];
+			Vec3f v_controlPtA = axis[controlPtA.axis_part].interpolate(controlPtA.parameter);
+			Vec3f v_controlPtB = axis[controlPtB.axis_part].interpolate(controlPtB.parameter);
+			Point_3 p_controlPtA((double)v_controlPtA[0], (double)v_controlPtA[1], (double)v_controlPtA[2]);
+			Point_3 p_controlPtB((double)v_controlPtB[0], (double)v_controlPtB[1], (double)v_controlPtB[2]);
+
+			controlPoint_t controlPoint = findMaxDistToLine(p_controlPtA, p_controlPtB);
+			if(controlPoint.dist > maxControlPt.dist){
+				maxControlPt.dist = controlPoint.dist;
+				maxControlPt.parameter = controlPoint.parameter;
+				maxControlPt.axis_part = controlPoint.axis_part;
+			}
+
+		}
+		// std::cout <<"dist = " << control_point.dist << std::endl;
+		if(maxControlPt.dist > epsilon){
 			for(int i = 0; i < list.size(); i++){
-				if( control_point.parameter > list[i].parameter){
-					list.insert(list.begin() + i, control_point);
-					break;
+
+				// Insertion of the control in the list at the right place
+				if( maxControlPt.axis_part == list[i].axis_part){
+					if(maxControlPt.parameter < list[i].parameter){
+						list.insert(list.begin() + i, maxControlPt);
+						break;
+					}
 				}
 			}
 		}else{
@@ -39,34 +76,37 @@ float GC::straightness(float C){
 
 }
 
+// TODO: Rename this to findMaxDistToAxisLine
 controlPoint_t GC::findMaxDistToLine(Point_3 start_point, Point_3 end_point){
 
 	Line_3 line(start_point, end_point);
 	float max_dist = 0.f;
-	float value = 0.f; //control point paramater
-	int axis_part = 0;
+	float max_value = 0.f; //control point paramater
+	int max_axis_part = 0;
 
 	for(int j = 0; j < axis.size(); j++){
-		//Increasing step is 0.01
-		for(int t = 0; t < 100; t++){
-			//Consider point on axis curve
-			Vec3f point = axis[j].interpolate(t/100.0f);
+		//Increasing step is 0.02
+		for(int t = 1; t < 50; t++){
+
+			// Consider point on axis curve
+			Vec3f point = axis[j].interpolate(t/50.0f);
 			Point_3 _point(point[0], point[1], point[2]);
 
 			//Computes distance from point to line
 			float dist = std::sqrt(squared_distance(_point, line));
 			if( dist > max_dist){
 				max_dist = dist;
-				value = t/100.0f;
-				axis_part = j;
+				max_value = t/50.0f;
+				max_axis_part = j;
 			}
 		}
 	}
 
 	controlPoint_t control_point;
-	control_point.parameter = value;
+	control_point.parameter = max_value;
 	control_point.dist = max_dist;
-	control_point.axis_part = axis_part;
+	control_point.axis_part = max_axis_part;
+	std::cout <<"control point: " << max_value <<", "<<max_dist <<std::endl;
 
 	return control_point;
 }
@@ -287,7 +327,7 @@ float GC::generateApproximatedProfileCurves(Vector_vector_points profiles_sample
 	return sumDist;
 }
 float GC::cylindricity(float  C, float alpha){
-	float cylindricity = straightness(C) + alpha*profileVariation();
+	float cylindricity = straightness(C) ;// + alpha*profileVariation();
 	return cylindricity;
 }
 

@@ -79,7 +79,7 @@ class GC {
 			}
 		}
 
-		float cylindricity(float alpha, float C);
+		float cylindricity(float C, float alpha);
 		float straightness(float C);
 		float profileVariation();
 		// Finds point with the maximun distant to the line between start_point and end_point

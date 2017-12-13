@@ -16,7 +16,7 @@ void Shape::initLocalGCs(const char* pointsFile, const char* normalsFile, float 
     pFile >> nb_GC;
     nFile >> nb_GC;
     for(int index = 0; index < nb_GC; index++){
-    	std::cout << "Iteration " << index << std::endl;
+    	std::cout << "Iteration " << index << ". ";
     	pFile >> x >> y >> z;
     	nFile >> u >> v >> w;
 		Vec3f point(x, y, z);
@@ -37,7 +37,11 @@ void Shape::initLocalGCs(const char* pointsFile, const char* normalsFile, float 
 			profiles.push_back(Utils::cross_section(orth_plane_at_s, s, "../hand_mesh.off"));
 		}
 		GC localGC(axis, ps, pe, profiles);
-		localGCs.push_back(localGC);
+		float cylindricity = localGC.cylindricity(0.1f, 1.0f);
+		std::cout << "Straightness = " << cylindricity << std::endl;
+		if(cylindricity < 0.15f){
+			localGCs.push_back(localGC);
+		}
 		/*std::cout << "localGC n°" << index <<": axis[" << axis[0].ps<<","<<axis[0].pe <<"], ps["<< ps <<"], pe[" << pe <<"]." << std::endl;
 		std::cout << "On affiche les points du premier profiles" << std::endl;
 		for(int u = 0; u < 1; u++){
