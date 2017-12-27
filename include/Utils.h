@@ -72,10 +72,13 @@ class Utils{
 		  /*std::copy(std::istream_iterator<Point_3>(in),
 		            std::istream_iterator<Point_3>(),
 		            std::back_inserter(points));*/
+		  // std::cout << "step 01" << std::endl;
 		  Construct construct(m,points.begin(),points.end());
+		  // std::cout << "step 02" << std::endl;
 		  CGAL::advancing_front_surface_reconstruction(points.begin(),
 		                                               points.end(),
 		                                               construct);
+		  // std::cout << "step 03" << std::endl;
 		  return m;
 		}
 
@@ -128,11 +131,24 @@ class Utils{
 			int size_i = ci_samples.size();
 			int size_j = cj_samples.size();
 
+			if(size_i == 0 || size_j == 0){
+				if(size_i == 0){
+					std::cout << "ci_samples is empty" << std::endl;
+				}
+				if(size_j == 0){
+					std::cout << "cj_samples is empty" << std::endl;
+				}
+				return 0.0f;
+			}
+
 			// computes h(ci, cj)
 			float max_ij = 0.f;
 			for(int k = 0; k < size_i; k++){
-				float shortest = std::sqrt(CGAL::squared_distance(ci_samples[k], cj_samples[0]));;
-				for(int h = 1; h < size_j; h++){
+
+				// Initialization of shortest
+				float shortest = std::sqrt(CGAL::squared_distance(ci_samples[k], cj_samples[0]));
+				for(int h = 0; h < size_j; h++){
+
 					float d = std::sqrt(CGAL::squared_distance(ci_samples[k], cj_samples[h]));
 					if (d < shortest){
 						shortest = d;
@@ -147,7 +163,7 @@ class Utils{
 			float max_ji = 0.f;
 			for(int h = 0; h < size_j; h++){
 				float shortest = std::sqrt(CGAL::squared_distance(cj_samples[h], ci_samples[0]));
-				for(int k = 1; k < size_i; k++){
+				for(int k = 0; k < size_i; k++){
 					float d = std::sqrt(CGAL::squared_distance(cj_samples[h], ci_samples[k]));
 					if (d < shortest){
 						shortest = d;
@@ -161,6 +177,19 @@ class Utils{
 			// returns max(h(ci, cj), h(cj, ci))
 			return std::max(max_ij, max_ji);
 
+		}
+
+		static std::vector<Point_3> getAllPoints(Polylines polylines){
+
+			std::vector<Point_3> allPoints;
+			for(int i = 0; i < polylines.size(); i++){
+
+				Polyline_type poly_type = polylines[i];
+				for(int j = 0; j < poly_type.size(); j++){
+					allPoints.push_back(poly_type[j]);
+				}
+			}
+			return allPoints;
 		}
 
 };

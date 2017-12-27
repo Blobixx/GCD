@@ -4,7 +4,7 @@
 
 
 float GC::straightness(float C){
-
+	std::cout << "Starting computing straightness ..." << std::endl;
 	float straightness = C;
 	float epsilon = 0.0000003f;
 
@@ -72,8 +72,8 @@ float GC::straightness(float C){
 		straightness += list[i].dist;
 	}
 
+	std::cout << "End of straightness." << std::endl;
 	return straightness;
-
 }
 
 // TODO: Rename this to findMaxDistToAxisLine
@@ -106,15 +106,16 @@ controlPoint_t GC::findMaxDistToLine(Point_3 start_point, Point_3 end_point){
 	control_point.parameter = max_value;
 	control_point.dist = max_dist;
 	control_point.axis_part = max_axis_part;
-	std::cout <<"control point: " << max_value <<", "<<max_dist <<std::endl;
+	// std::cout <<"control point: " << max_value <<", "<<max_dist <<std::endl;
 
 	return control_point;
 }
 
 float GC::profileVariation(){
 
+	std::cout << "Starting computing profile variation ..." << std::endl;
 	std::vector<Vec3f> original_centroids; // centroids points on axis
-	int nb_points = 10; // nb of centroids
+	int nb_points = 5; // nb of centroids
 	std::vector<Polylines> original_profiles;
 	// vector of normals of the plane perpendicular the axis at each sample points
 	std::vector<Vec3f> orth_planes;
@@ -123,8 +124,10 @@ float GC::profileVariation(){
 	// for loop gives actually 11 points containing ps and pe
 	// Computes profile curves as cross sections with the shape perpendicular to the axis at point
 	for(int j = 0; j < axis.size(); j++){
+
 		HermiteCurve hermite_curve = axis[j];
 		for(int i = 0; i <= nb_points; i++){
+
 			Vec3f s = hermite_curve.interpolate(i/nb_points);
 			original_centroids.push_back(s);
 			Vec3f tangent_at_s = hermite_curve.get_tangent(i/nb_points);
@@ -134,8 +137,8 @@ float GC::profileVariation(){
 		}
 	}
 
-	// Align profile curves so they reside on parallel planes (normal_vector(0,1,0))
-	// Align centroids so they lie on the line passing through ps with direction vector (0,1,0)
+	/* Align profile curves so they reside on parallel planes (normal_vector(0,1,0))
+	   Align centroids so they lie on the line passing through ps with direction vector (0,1,0)*/
 	Vec3f n(0,1,0);
 
 	for(int index = 0; index < original_centroids.size(); index++){
@@ -151,7 +154,7 @@ float GC::profileVariation(){
 		float v3 = v[2];
 
 		if( cos != -1){
-			// rotation to orient the plane so that it is normal to n(0,1,0)
+			// rotation to orient the plane so that its normal is n(0,1,0)
 			Aff_transformation_3 rotation(1-(v2*v2+v3*v3)/(1+cos), -1.f*v3+(v1*v2)/(1+cos), v2+(v1*v3)/(1+cos),
 										v3+(v1*v2)/(1+cos), 1-(v1*v1+v3*v3)/(1+cos), -1.f*v1+(v2*v3)/(1+cos),
 										-1.f*v2+(v1*v3)/(1+cos), v1+(v2*v3)/(1+cos), 1-(v1*v1+v2*v2)/(1+cos)
@@ -166,11 +169,11 @@ float GC::profileVariation(){
 			aligned_centroids.push_back(aligned_centroid);
 
 			// Now apply transformations of the profile correspoding to centroid
-			Polylines profile = original_profiles[index];
+			Polylines profile(original_profiles[index]);
 			Polylines aligned_profile;
 
 			for(int polyline_type_index = 0; polyline_type_index < profile.size(); polyline_type_index++){
-				Polyline_type profile_component = profile[polyline_type_index];
+				Polyline_type profile_component(profile[polyline_type_index]);
 				Polyline_type aligned_profile_component;
 
 				for(int point_index = 0; point_index < profile_component.size(); point_index++){
@@ -186,14 +189,15 @@ float GC::profileVariation(){
 			aligned_profiles.push_back(aligned_profile);
 		}else{
 	// TODO: case cos = -1
+			std::cout << "ici" << std::endl;
 		}
 	}
 
-	// Now each aligned profile is sampled with the same nb of points
-	// The following assures that this nb of points is at least the nb of points of each curve
-	Polylines poly = aligned_profiles[0];
+	/* Now each aligned profile is sampled with the same nb of points
+	   The following assures that this nb of points is at least the nb of points of each curve */
+	/*Polylines poly = aligned_profiles[0];
 	Polyline_type poly_type = poly[0];
-	// nb of points in the first component of the first curve
+	// Number of points in the first component of the first curve
 	int min_polytype_size = poly_type.size();
 	for(int i = 0; i < aligned_profiles.size(); i++){
 		Polylines _poly = aligned_profiles[i];
@@ -205,129 +209,142 @@ float GC::profileVariation(){
 			}
 		}
 	}
-	int nb_samples = std::min(nb_profile_samples, min_polytype_size);
+	int nb_profile_samples = 6;
+	int nb_samples = std::min(nb_profile_samples, min_polytype_size);*/
+	nb_profile_samples = 6;
+	for(int i = 0; i < aligned_profiles.size(); i++){
+		int nbPts = Utils::getAllPoints(aligned_profiles[i]).size();
+		if( nbPts < nb_profile_samples){
+			nb_profile_samples = nbPts;
+		}
+	}
 
 	// Vector containing the sample points for each curve
 	Vector_vector_points profiles_samples;
 	for(int i = 0; i < aligned_profiles.size(); i++){
-		std::vector<Point_3> s = sampleProfileCurve(aligned_profiles[i], nb_samples);
-		profiles_samples[i].insert(profiles_samples[i].end(), s.begin(), s.end());
+		std::vector<Point_3> s(sampleProfileCurve(aligned_profiles[i], nb_profile_samples));
+		// profiles_samples[i].insert(profiles_samples[i].end(), s.begin(), s.end());
+		profiles_samples.push_back(s); // Is it the same as the line above ? why use insert at end ?
 	}
 
-	// Generates all the profile curve that deviates the most from
-	// the approximated shape.
-	// Returns the sum of all the dist
+
+	// std::cout << "merde 1" << std::endl;
 	float profileVariation = generateApproximatedProfileCurves(profiles_samples);
-	std::vector<Point_3> cs_samples = sampleProfileCurve(aligned_profiles[0], nb_samples);
-	std::vector<Point_3> ce_samples = sampleProfileCurve(aligned_profiles[aligned_profiles.size()-1], nb_samples);
+	// std::cout << "merde 2" << std::endl;
+	std::vector<Point_3> cs_samples(sampleProfileCurve(aligned_profiles[0], nb_profile_samples));
+	// std::cout << "merde 3" << std::endl;
+	std::vector<Point_3> ce_samples(sampleProfileCurve(aligned_profiles[aligned_profiles.size()-1], nb_profile_samples));
+	// std::cout << "merde 4" << std::endl;
 	profileVariation += Utils::Haussdorf(cs_samples, ce_samples);
 
+	std::cout << "End of profile variation." << std::endl;
 	return profileVariation;
 }
 
+// TODO: Can be moved to Utils.h ?
 std::vector<Point_3> GC::sampleProfileCurve(Polylines profile, int nb_samples){
 
-	int n = profile.size(); //nb components of the polylines
-	// sSelect x points per component so that x*nb_component = nb_samples
-	int nb_points_per_component = (int)std::floor(nb_samples/n);
-	std::vector<Point_3> samples;
-	for(int c = 0; c < n; c++){
-		Polyline_type polytype = profile[c];
-		for(int x = 0; x < nb_points_per_component; x++){
-			samples.push_back(polytype[x]);
+	// int n = profile.size(); //nb components of the polylines
+	// // Select x points per component so that x*nb_component = nb_samples
+	// int nb_points_per_component = (int)std::floor(nb_samples/n);
+	// std::vector<Point_3> samples;
+	// for(int c = 0; c < n; c++){
+
+	// 	Polyline_type polytype = profile[c];
+	// 	for(int x = 0; x < nb_points_per_component; x++){
+
+	// 		samples.push_back(polytype[x]);
+	// 	}
+	// }
+	std::vector<Point_3> profile_points(Utils::getAllPoints(profile));
+	int n = profile_points.size();
+	if( n <= nb_samples){
+		return profile_points;
+	}else{
+		std::vector<Point_3> samples;
+		int index = 0;
+		while( samples.size() < nb_samples){
+			samples.push_back(profile_points[index]);
+			index = (index+nb_samples)%n;
 		}
+		return samples;
 	}
-	return samples;
+	// return samples;
 }
 
 float GC::generateApproximatedProfileCurves(Vector_vector_points profiles_samples){
 
-	float sumDist = 0.f;
+	float epsilon = 0.01f;
+	int nb_profiles = aligned_profiles.size();
+
+	if( nb_profiles < 1){
+		return 0.0f;
+	}
+
+	std::vector<Point_3> control_profiles;
+	// Vector to check if a profile has already been added to the approximated shape
+	std::vector<bool> control_profiles_indices(nb_profiles, false);
+
+	// Initialization of the approximated shape with start and end profiles
+	std::vector<Point_3> cs_points(Utils::getAllPoints(aligned_profiles[0]));
+	control_profiles.insert(control_profiles.end(), cs_points.begin(), cs_points.end());
+	control_profiles_indices[0] = true;
+	std::vector<Point_3> ce_points(Utils::getAllPoints(aligned_profiles[nb_profiles-1]));
+	control_profiles.insert(control_profiles.end(), ce_points.begin(), ce_points.end());
+	control_profiles_indices[nb_profiles-1] = true;
+
 	bool done = false;
-	float epsilon = 0.005f;
+	float sumDist = 0.0f;
 
-	int aligned_profiles_size = aligned_profiles.size();
-	// The profiles that will take part in the calculation
-	std::vector<Polylines> selected_profiles;
-	std::vector<int> selected_profiles_index;
-	// Add profiles for ps and pe
-	selected_profiles.push_back(aligned_profiles[0]);
-	selected_profiles.push_back(aligned_profiles[aligned_profiles_size-1]);
-	selected_profiles_index.push_back(0);
-	selected_profiles_index.push_back(aligned_profiles_size-1);
+	while( !done ){
 
-	std::vector<Point_3> approximated_shape_points;
-	while(!done){
+		CGAL_Mesh approximated_shape = Utils::generateMesh(control_profiles);
 
-		Polylines added_profile;
-		float max_dist = 0.f;
-		int max_index = 0;
-		Polylines max_profile_on_approximated_shape;
-		for(int p = 0; p < selected_profiles.size()-1; p++){
+		float max_dist = 0.0f;
+		int max_index = -1;
+		// std::cout << "step 1" << std::endl;
+		for(int i = 1; i < nb_profiles-1; i++){
 
-			// Generates approximated shape
-			CGAL_Mesh approximated_shape = Utils::generateMesh(approximated_shape_points);
+			if( !control_profiles_indices[i]){
+				Point_3 profile_centroid = aligned_centroids[i];
+				Vec3f v_profile_centroid(profile_centroid.x(), profile_centroid.y(), profile_centroid.z());
 
-			// Find the profile curve that diverges the most from the approximated shape
-			for(int i = 0; i < aligned_profiles_size; i++){
+				// std::cout << "step 2" << std::endl;
+				Polylines approx_profile(Utils::cross_section(Vec3f(0,1,0), v_profile_centroid, approximated_shape));
+				// std::cout << "step 3" << std::endl;
+				std::vector<Point_3> approx_profile_samples(sampleProfileCurve(approx_profile, nb_profile_samples));
+				// std::cout << "step 4" << std::endl;
+				float dist = Utils::Haussdorf(profiles_samples[i], approx_profile_samples);
+				// std::cout << "step 5" << std::endl;
+				if( dist > max_dist){
 
-				// If profiles has not been selected yet
-				if( std::find(selected_profiles_index.begin(), selected_profiles_index.end(), i) == selected_profiles_index.end()){
-					Polylines prfl = aligned_profiles[i];
-					//Each profile curve is normal to n(0,1,0) from how is was generated
-					Vec3f aligned_centroids_vec3f(aligned_centroids[i].x(), aligned_centroids[i].y(), aligned_centroids[i].z());
-					Polylines approximated_profile = Utils::cross_section(Vec3f(0,1,0), aligned_centroids_vec3f, approximated_shape);
-
-					// Stores all the points of the profile
-					std::vector<Point_3> profile_points;
-					// Stores all the points of the approximated_profile
-					std::vector<Point_3> approximated_profile_points;
-					for(int j = 0; j < prfl.size(); j++){
-						Polyline_type polytype(prfl[j]);
-						profile_points.insert(profile_points.end(), polytype.begin(), polytype.end());
-					}
-					for(int k = 0; k < approximated_profile.size(); k++){
-						Polyline_type polytype(approximated_profile[k]);
-						approximated_profile_points.insert(approximated_profile_points.end(), polytype.begin(), polytype.end());
-					}
-
-					// Computes Haussdorf distance between profile and its approximated
-					float dist = Utils::Haussdorf(profiles_samples[i], approximated_profile_points);
-
-					if(dist > max_dist){
-						max_dist = dist;
-						max_index = i;
-						selected_profiles_index.push_back(max_index);
-						for(int s = 0; s < added_profile.size(); s++){
-							added_profile[s].clear();
-						}
-						added_profile.clear();
-						for(int u = 0; u < approximated_profile.size(); u++){
-							Polyline_type _poly_type = approximated_profile[u];
-							for(int v = 0; v < _poly_type.size(); v++){
-								added_profile[u].push_back(_poly_type[v]);
-							}
-						}
-					}
+					max_dist = dist;
+					max_index = i;
 				}
 			}
 		}
-		if(max_dist > epsilon){
+
+		if((max_dist > epsilon) && (max_index != -1)){
+			// std::cout << "step 6" << std::endl;
 			sumDist += max_dist;
-			// Sample new added profile
-			std::vector<Point_3> samples = sampleProfileCurve(added_profile, nb_profile_samples);
-			// Adds the new profile points to the approximated shape.
-			// Position of insertion corresponds to the position of the profile
-			// in the aligned profile curves vector
-			approximated_shape_points.insert(approximated_shape_points.begin()+max_index, samples.begin(), samples.end());
+			control_profiles_indices[max_index] = true;
+			std::vector<Point_3> control_prfl_points(Utils::getAllPoints(aligned_profiles[max_index]));
+			// std::cout << "step 7" << std::endl;
+			control_profiles.insert(control_profiles.end(), control_prfl_points.begin(),
+													control_prfl_points.end());
+			approximated_shape.clear();
 		}else{
+			// std::cout << "step 8" << std::endl;
 			done = true;
 		}
 	}
+
 	return sumDist;
 }
+
 float GC::cylindricity(float  C, float alpha){
-	float cylindricity = straightness(C) ;// + alpha*profileVariation();
+	float cylindricity = straightness(C) + alpha*profileVariation();
+	// float cylindricity = profileVariation();
 	return cylindricity;
 }
 

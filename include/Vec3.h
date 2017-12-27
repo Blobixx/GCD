@@ -14,6 +14,7 @@
 
 #include <cmath>
 #include <iostream>
+#include "Utils.h"
 
 /// Vector in 3 dimensions, with basics operators overloaded.
 template <typename T>
@@ -29,6 +30,13 @@ class Vec3 {
 
         inline Vec3 (const Vec3 & v) {
                 init (v[0], v[1], v[2]);
+        }
+
+        // Shane
+        inline Vec3 (Point_3 p){
+            m_p[0] = p.x();
+            m_p[1] = p.y();
+            m_p[2] = p.z();
         }
 
         ~Vec3() {}

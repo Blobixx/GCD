@@ -70,6 +70,6 @@ void Mesh::loadOFF (const std::string & filename) {
             in >> T[i].v[j];
     }
     in.close ();
-    centerAndScaleToUnit ();
+    // centerAndScaleToUnit ();
     recomputeNormals ();
 }

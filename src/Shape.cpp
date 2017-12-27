@@ -9,26 +9,25 @@ void Shape::initLocalGCs(const char* pointsFile, const char* normalsFile, float 
     	std::cerr << "Problems when opening files" << std::endl;
         exit (EXIT_FAILURE);
     }
-
+    localGCs.clear();
     int nb_GC;
     float x, y, z;
     float u, v, w;
     pFile >> nb_GC;
     nFile >> nb_GC;
     for(int index = 0; index < nb_GC; index++){
-    	std::cout << "Iteration " << index << ". ";
+    	std::cout << "Iteration " << index << std::endl;
     	pFile >> x >> y >> z;
     	nFile >> u >> v >> w;
 		Vec3f point(x, y, z);
 		Vec3f normal(u, v, w);
-    	// GC localGC(point, normal);
-    	// localGCs.push_back(localGC);
     	Vec3f ps = point - epsilon*normal;
     	Vec3f pe = point + epsilon*normal;
     	HermiteCurve axis_curve(ps, pe, normal, normal);
     	std::vector<HermiteCurve> axis;
     	axis.push_back(axis_curve);
     	std::vector<Polylines> profiles;
+
     	for(int i = 0; i < nbProfiles; i++){
 
 			Vec3f s = axis_curve.interpolate(i/nbProfiles);
@@ -37,9 +36,10 @@ void Shape::initLocalGCs(const char* pointsFile, const char* normalsFile, float 
 			profiles.push_back(Utils::cross_section(orth_plane_at_s, s, "../hand_mesh.off"));
 		}
 		GC localGC(axis, ps, pe, profiles);
-		float cylindricity = localGC.cylindricity(0.1f, 1.0f);
-		std::cout << "Straightness = " << cylindricity << std::endl;
-		if(cylindricity < 0.15f){
+		// localGCs.push_back(localGC);
+		// float cylindricity = localGC.cylindricity(0.1f, 1.0f);
+		// std::cout << "Profile variation = " << cylindricity << std::endl;
+		if(index%2 == 0){
 			localGCs.push_back(localGC);
 		}
 		/*std::cout << "localGC n°" << index <<": axis[" << axis[0].ps<<","<<axis[0].pe <<"], ps["<< ps <<"], pe[" << pe <<"]." << std::endl;
