@@ -26,19 +26,24 @@ void Shape::initLocalGCs(const char* pointsFile, const char* normalsFile, float 
     	HermiteCurve axis_curve(ps, pe, normal, normal);
     	std::vector<HermiteCurve> axis;
     	axis.push_back(axis_curve);
-    	std::vector<Polylines> profiles;
 
-    	for(int i = 0; i < nbProfiles; i++){
+    	// Ai-je besoin de calculer les profiles ????
 
-			Vec3f s = axis_curve.interpolate(i/nbProfiles);
-			Vec3f tangent_at_s = axis_curve.get_tangent(i/nbProfiles);
-			Vec3f orth_plane_at_s = normalize(tangent_at_s); // The normal of the plane perpendicular to axis at p is the tangeant at p
-			profiles.push_back(Utils::cross_section(orth_plane_at_s, s, "../hand_mesh.off"));
-		}
-		GC localGC(axis, ps, pe, profiles);
+  		// Vector_vector_point_3 profiles;
+
+  		// for(int i = 0; i < nbProfiles; i++){
+
+		// 	Vec3f s = axis_curve.interpolate(i/nbProfiles);
+		// 	Vec3f tangent_at_s = axis_curve.get_tangent(i/nbProfiles);
+		// 	Vec3f orth_plane_at_s = normalize(tangent_at_s); // The normal of the plane perpendicular to axis at p is the tangeant at p
+		// 	profiles.push_back(Utils::cross_section(orth_plane_at_s, s, "../hand_mesh.off"));
+		// }
+		// GC localGC(axis, ps, pe, profiles);
+		GC localGC(axis, ps, pe);
 		// localGCs.push_back(localGC);
-		// float cylindricity = localGC.cylindricity(0.1f, 1.0f);
+		float cylindricity = localGC.cylindricity(0.1f, 1.0f);
 		// std::cout << "Profile variation = " << cylindricity << std::endl;
+		// std::cout << "Cylindricity = " << cylindricity << std::endl;
 		if(index%2 == 0){
 			localGCs.push_back(localGC);
 		}

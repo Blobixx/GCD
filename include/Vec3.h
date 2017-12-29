@@ -14,7 +14,10 @@
 
 #include <cmath>
 #include <iostream>
-#include "Utils.h"
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+
+typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
+typedef K::Point_3  Point_3;
 
 /// Vector in 3 dimensions, with basics operators overloaded.
 template <typename T>

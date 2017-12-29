@@ -49,23 +49,26 @@ static bool fullScreen = false;
 
 Mesh mesh;
 std::vector<CGAL_Mesh> meshes;
+std::vector<Point_3> points;
+std::vector<std::vector<Vec3f>> lines;
+Shape* shape;
 
 void printUsage () {
     cerr << endl
          << "gMini: a minimal OpenGL/GLUT application" << endl
-         << "for 3D graphics." << endl 
+         << "for 3D graphics." << endl
          << "Author : Tamy Boubekeur (http://www.labri.fr/~boubek)" << endl << endl
          << "Usage : ./gmini [<file.off>]" << endl
-         << "Keyboard commands" << endl 
+         << "Keyboard commands" << endl
          << "------------------" << endl
-         << " ?: Print help" << endl 
-         << " w: Toggle Wireframe Mode" << endl 
-         << " g: Toggle Gouraud Shading Mode" << endl 
-         << " f: Toggle full screen mode" << endl 
-         << " <drag>+<left button>: rotate model" << endl 
+         << " ?: Print help" << endl
+         << " w: Toggle Wireframe Mode" << endl
+         << " g: Toggle Gouraud Shading Mode" << endl
+         << " f: Toggle full screen mode" << endl
+         << " <drag>+<left button>: rotate model" << endl
          << " <drag>+<right button>: move model" << endl
          << " <drag>+<middle button>: zoom" << endl
-         << " q, <esc>: Quit" << endl << endl; 
+         << " q, <esc>: Quit" << endl << endl;
 }
 
 void usage () {
@@ -123,6 +126,7 @@ void clear () {
 void draw () {
 
     glBegin (GL_TRIANGLES);
+
     for (unsigned int i = 0; i < mesh.T.size (); i++){
         for (unsigned int j = 0; j < 3; j++) {
             const Vertex & v = mesh.V[mesh.T[i].v[j]];
@@ -132,23 +136,60 @@ void draw () {
         }
     }
 
-    for(int index = 0; index < meshes.size(); index++){
+    /*for(int index = 0; index < meshes.size(); index++){
         CGAL_Mesh gc = meshes[index];
-        /*CGAL_Mesh::Vertex_range r = gc.vertices();
-        CGAL_Mesh::Vertex_range::iterator it = r.begin();
-        CGAL_Mesh::Vertex_range::iterator end = r.end();
-        for(; it != end; ++it){
-            CGAL_Mesh::Vertex_index vertex = *it;
-            Point_3 point = vertex.point();
-            glVertex3f(point.x(), point.y(), point.z());
-        }*/
         BOOST_FOREACH(CGAL_Mesh::Vertex_index vd, gc.vertices()){
             Point_3 point =  gc.point(vd);
             glColor3f(0.6f, 0.0f, 0.4f);
             glVertex3f(point.x(), point.y(), point.z());
         }
-    }
+    }*/
     glEnd ();
+
+    /*glBegin(GL_LINES);
+
+    for(int index = 0; index < lines.size(); index++){
+
+        std::vector<Vec3f> line(lines[index]);
+        Vec3f p0 = line[0];
+        Vec3f p1 = line[1];
+        Vec3f p2 = line[2];
+        Vec3f p3 = line[3];
+        glColor3f(0.6f, 0.0f, 0.4f);
+        glVertex3f(p0[0], p0[1], p0[2]);
+        glVertex3f(p1[0], p1[1], p1[2]);
+        glVertex3f(p2[0], p2[1], p2[2]);
+        glVertex3f(p3[0], p3[1], p3[2]);
+    }
+    glEnd();*/
+
+    // Printing profile curves
+    glBegin(GL_POINTS);
+
+    for(int i = 0; i < shape->localGCs.size(); i++){
+
+        GC gc = shape->localGCs[i];
+        for(int j = 0; j < gc.aligned_profiles.size(); j++){
+
+            std::vector<Point_3> profile = gc.aligned_profiles[j];
+            for(int k = 0; k < profile.size(); k++){
+
+                Point_3 p = profile[k];
+                glColor3f(0.6f, 0.0f, 0.4f);
+                glVertex3f(p.x(), p.y(), p.z());
+            }
+
+        }
+    }
+    glEnd();
+    // Printing the samples points
+    /*glBegin(GL_POINTS);
+    for(int j = 0; j < points.size(); j++){
+        Point_3 p = points[j];
+        glColor3f(0.6f, 0.0f, 0.4f);
+        glVertex3f(p.x(), p.y(), p.z());
+    }
+    glEnd();*/
 }
 
 void display () {
@@ -274,21 +315,55 @@ void reshape(int w, int h) {
     camera.resize (w, h);
 }
 
-void initMeshes(int argc, char **argv, const char *filename){
+void loadPoints(char* filename){
+
+    std::ifstream file(filename);
+    int nbPts;
+    file >> nbPts;
+    float x, y, z;
+    for(int i = 0; i < nbPts; i++){
+
+        file >> x >> y >> z;
+        points.push_back(Point_3(x, y ,z));
+    }
+}
+
+void initLines(int argc, char **argv, const char *filename){
+
     Shape *shape = new Shape();
     std::ifstream input(filename);
     input >> shape->mesh;
-    shape->initLocalGCs(argv[1], argv[2], 0.001f, 2);
-    // shape->constructLocalGCs(0.001f, 2);
+    shape->initLocalGCs(argv[1], argv[2], 0.1f, 2);
+    int nbLocalGCs = shape->localGCs.size();
+
+    for(int index = 0; index < nbLocalGCs; index++){
+
+        GC gc = shape->localGCs[index];
+        HermiteCurve axis = gc.axis[0];
+        std::vector<Vec3f> points;
+        for(int t = 0; t <= 3; t++){
+            points.push_back(axis.interpolate(t/3));
+        }
+        lines.push_back(points);
+    }
+    std::cout << "There is " << lines.size() << " local GCs." << std::endl;
+}
+
+void initMeshes(int argc, char **argv, const char *filename){
+
+    // Shape *shape = new Shape();
+    shape = new Shape();
+    std::ifstream input(filename);
+    input >> shape->mesh;
+    shape->initLocalGCs(argv[1], argv[2], 0.01f, 2);
+    // loadPoints(argv[1]);
     int nbLocalGCs = shape->localGCs.size();
     std::cout << "There is " << nbLocalGCs << " local GCs." << std::endl;
+
     for(int index = 0; index < nbLocalGCs; index++){
+
         std::vector<Point_3> GC_points = shape->localGCs[index].getAllPoints();
-        /*if( index < 10){
-            std::cout << index <<": "<< GC_points.size() <<", ";
-        }*/
         meshes.push_back(Utils::generateMesh(GC_points));
-        // std::cout << "mesh n°" << index <<" added" << std::endl;
     }
 }
 
@@ -301,6 +376,7 @@ void initGlut(int argc, char **argv){
     const char *filename = argc == 4 ? argv[1] : "../hand_mesh.off";
 
     initMeshes(argc, argv, filename);
+    // initLines(argc, argv, filename);
     init(filename);
 
     glutIdleFunc (idle);

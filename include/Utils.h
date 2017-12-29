@@ -4,7 +4,6 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Advancing_front_surface_reconstruction.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/array.h>
@@ -16,17 +15,26 @@
 #include <CGAL/Vector_3.h>
 #include "Vec3.h"
 
-typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef K::Point_3  Point_3;
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/wlop_simplify_and_regularize_point_set.h>
+
+
 typedef CGAL::Surface_mesh<Point_3> CGAL_Mesh;
 typedef std::vector<K::Point_3> Polyline_type;
 typedef std::vector<Polyline_type > Polylines;
 typedef CGAL::cpp11::array<std::size_t,3> Facet;
 
-typedef CGAL::Aff_transformation_3<K> Aff_transformation_3; //K kernel defined in intersect.h
+typedef CGAL::Aff_transformation_3<K> Aff_transformation_3; //K kernel defined in Vec3.h
 typedef K::Vector_3  Vector_3;
 typedef K::Line_3  Line_3;
-typedef std::vector<std::vector<Point_3>> Vector_vector_points;
+typedef std::vector<std::vector<Point_3>> Vector_vector_point_3;
+
+// Concurrency
+#ifdef CGAL_LINKED_WITH_TBB
+typedef CGAL::Parallel_tag Concurrency_tag;
+#else
+typedef CGAL::Sequential_tag Concurrency_tag;
+#endif
 
 struct controlPoint_t {
 	float parameter;
@@ -83,7 +91,7 @@ class Utils{
 		}
 
 		// Filename need to be .off format
-		static Polylines cross_section(Vec3f normal, Vec3f p, const char* filename){
+		static std::vector<Point_3> cross_section(Vec3f normal, Vec3f p, const char* filename){
 
 		    Polylines polylines;
 		    std::ifstream input(filename);
@@ -91,7 +99,7 @@ class Utils{
 		    if (!input || !(input >> mesh) || mesh.is_empty()
 		                         || !CGAL::is_triangle_mesh(mesh)) {
 		        std::cerr << "Not a valid input file." << std::endl;
-		        return polylines;
+		        return getAllPoints(polylines);
 		    }
 		    // Slicer constructor from the mesh
 		    CGAL::Polygon_mesh_slicer<CGAL_Mesh, K> slicer(mesh);
@@ -104,10 +112,10 @@ class Utils{
 		    //Equation of plane is a*x + b*y + c*z + d = 0
 		    slicer(K::Plane_3(a, b, c, d), std::back_inserter(polylines));
 
-		    return polylines;
+		    return getAllPoints(polylines);
 		}
 
-		static Polylines cross_section(Vec3f normal, Vec3f p, CGAL_Mesh mesh){
+		/*static Polylines cross_section(Vec3f normal, Vec3f p, CGAL_Mesh mesh){
 
 		    Polylines polylines;
 		    CGAL::Polygon_mesh_slicer<CGAL_Mesh, K> slicer(mesh);
@@ -121,6 +129,21 @@ class Utils{
 		    slicer(K::Plane_3(a, b, c, d), std::back_inserter(polylines));
 
 		    return polylines;
+		}*/
+		static std::vector<Point_3> cross_section(Vec3f normal, Vec3f p, CGAL_Mesh mesh){
+
+		    Polylines polylines;
+		    CGAL::Polygon_mesh_slicer<CGAL_Mesh, K> slicer(mesh);
+
+		    float a = normal[0];
+		    float b = normal[1];
+		    float c = normal[2];
+		    float d = -a*p[0] - b*p[1] - c*p[2];
+
+		    //Equation of plane is a*x + b*y + c*z + d = 0
+		    slicer(K::Plane_3(a, b, c, d), std::back_inserter(polylines));
+
+		    return getAllPoints(polylines);
 		}
 
 		static float Haussdorf(std::vector<Point_3> ci_samples, std::vector<Point_3> cj_samples){
@@ -190,6 +213,25 @@ class Utils{
 				}
 			}
 			return allPoints;
+		}
+
+		static std::vector<Point_3> samplePoints(std::vector<Point_3> points, int nb_samples){
+
+		  	std::vector<Point_3> output;
+		  	//parameters
+		  	const double retain_percentage = 2;   // percentage of points to retain.
+		 	const double neighbor_radius = 0.5;   // neighbors size.
+		  	std::cout << "ici"<<std::endl;
+		  	CGAL::wlop_simplify_and_regularize_point_set
+		                          <Concurrency_tag>
+		                          (points.begin(),
+		                           points.end(),
+		                           std::back_inserter(output),
+		                           retain_percentage,
+		                           neighbor_radius
+		                           );
+
+		  	return output;
 		}
 
 };
