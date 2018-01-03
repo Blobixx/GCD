@@ -24,11 +24,11 @@ void Mesh::clear () {
 
 void Mesh::recomputeNormals() {
     for (unsigned int i = 0; i < V.size (); i++)
-        V[i].n = Vec3f (0.0, 0.0, 0.0);
+        V[i].n = Vec3d (0.0, 0.0, 0.0);
     for (unsigned int i = 0; i < T.size (); i++) {
-        Vec3f e01 = V[T[i].v[1]].p -  V[T[i].v[0]].p;
-        Vec3f e02 = V[T[i].v[2]].p -  V[T[i].v[0]].p;
-        Vec3f n = cross(e01, e02);
+        Vec3d e01 = V[T[i].v[1]].p -  V[T[i].v[0]].p;
+        Vec3d e02 = V[T[i].v[2]].p -  V[T[i].v[0]].p;
+        Vec3d n = cross(e01, e02);
         n.normalize ();
         for (unsigned int j = 0; j < 3; j++)
             V[T[i].v[j]].n += n;
@@ -38,7 +38,7 @@ void Mesh::recomputeNormals() {
 }
 
 void Mesh::centerAndScaleToUnit() {
-    Vec3f c;
+    Vec3d c;
     for  (unsigned int i = 0; i < V.size (); i++)
         c += V[i].p;
     c /= V.size ();

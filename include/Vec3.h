@@ -15,8 +15,9 @@
 #include <cmath>
 #include <iostream>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-
+// #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
+// typedef CGAL::Exact_predicates_exact_constructions_kernel K;
 typedef K::Point_3  Point_3;
 
 /// Vector in 3 dimensions, with basics operators overloaded.

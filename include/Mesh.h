@@ -19,7 +19,7 @@
 class Vertex {
 public:
     inline Vertex () {}
-    inline Vertex (const Vec3f & p, const Vec3f & n) : p (p), n (n) {}
+    inline Vertex (const Vec3d & p, const Vec3d & n) : p (p), n (n) {}
     inline Vertex (const Vertex & v) : p (v.p), n (v.n) {}
     inline virtual ~Vertex () {}
     inline Vertex & operator= (const Vertex & v) {
@@ -27,8 +27,8 @@ public:
         n = v.n;
         return (*this);
     }
-    Vec3f p;
-    Vec3f n;
+    Vec3d p;
+    Vec3d n;
 };
 
 class Triangle {

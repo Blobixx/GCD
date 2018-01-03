@@ -50,7 +50,7 @@ static bool fullScreen = false;
 Mesh mesh;
 std::vector<CGAL_Mesh> meshes;
 std::vector<Point_3> points;
-std::vector<std::vector<Vec3f>> lines;
+std::vector<std::vector<Vec3d>> lines;
 Shape* shape;
 
 void printUsage () {
@@ -104,6 +104,7 @@ void init (const char * modelFilename) {
     glDepthFunc (GL_LESS);
     glEnable (GL_DEPTH_TEST);
     glClearColor (0.2f, 0.2f, 0.3f, 1.0f);
+    // glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glEnable (GL_COLOR_MATERIAL); // Dont forget this if you want to use glColor3f
 }
 
@@ -125,46 +126,45 @@ void clear () {
 
 void draw () {
 
-    glBegin (GL_TRIANGLES);
+    // glBegin (GL_TRIANGLES);
 
-    for (unsigned int i = 0; i < mesh.T.size (); i++){
-        for (unsigned int j = 0; j < 3; j++) {
-            const Vertex & v = mesh.V[mesh.T[i].v[j]];
-            glColor3f(0.60f, 0.6f, 1.0f);
-            glNormal3f (v.n[0], v.n[1], v.n[2]);
-            glVertex3f (v.p[0], v.p[1], v.p[2]);
-        }
-    }
+    // for (unsigned int i = 0; i < mesh.T.size (); i++){
+    //     for (unsigned int j = 0; j < 3; j++) {
+    //         const Vertex & v = mesh.V[mesh.T[i].v[j]];
+    //         glColor3f(0.6f, 0.6f, 1.0f);
+    //         glNormal3f (v.n[0], v.n[1], v.n[2]);
+    //         glVertex3f (v.p[0], v.p[1], v.p[2]);
+    //     }
+    // }
 
-    /*for(int index = 0; index < meshes.size(); index++){
-        CGAL_Mesh gc = meshes[index];
-        BOOST_FOREACH(CGAL_Mesh::Vertex_index vd, gc.vertices()){
-            Point_3 point =  gc.point(vd);
-            glColor3f(0.6f, 0.0f, 0.4f);
-            glVertex3f(point.x(), point.y(), point.z());
-        }
-    }*/
-    glEnd ();
+    // /*for(int index = 0; index < meshes.size(); index++){
+    //     CGAL_Mesh gc = meshes[index];
+    //     BOOST_FOREACH(CGAL_Mesh::Vertex_index vd, gc.vertices()){
+    //         Point_3 point =  gc.point(vd);
+    //         glColor3f(0.6f, 0.0f, 0.4f);
+    //         glVertex3f(point.x(), point.y(), point.z());
+    //     }
+    // }*/
+    // glEnd ();
 
-    /*glBegin(GL_LINES);
 
-    for(int index = 0; index < lines.size(); index++){
+    // Printing axis as line [ps,pe]
+    glBegin(GL_LINES);
 
-        std::vector<Vec3f> line(lines[index]);
-        Vec3f p0 = line[0];
-        Vec3f p1 = line[1];
-        Vec3f p2 = line[2];
-        Vec3f p3 = line[3];
+    for(int i = 0; i < shape->localGCs.size(); i++){
+
+        GC gc = shape->localGCs[i];
+        int n = gc.axis.size();
+        Vec3d p0 = gc.axis[0].interpolate(0.0);
+        Vec3d p1 = gc.axis[n-1].interpolate(1.0);
         glColor3f(0.6f, 0.0f, 0.4f);
         glVertex3f(p0[0], p0[1], p0[2]);
         glVertex3f(p1[0], p1[1], p1[2]);
-        glVertex3f(p2[0], p2[1], p2[2]);
-        glVertex3f(p3[0], p3[1], p3[2]);
     }
-    glEnd();*/
+    glEnd();
 
     // Printing profile curves
-    glBegin(GL_POINTS);
+    /*glBegin(GL_POINTS);
 
     for(int i = 0; i < shape->localGCs.size(); i++){
 
@@ -176,18 +176,10 @@ void draw () {
 
                 Point_3 p = profile[k];
                 glColor3f(0.6f, 0.0f, 0.4f);
-                glVertex3f(p.x(), p.y(), p.z());
+                glVertex3f(CGAL::to_double(p.x()), CGAL::to_double(p.y()), CGAL::to_double(p.z()));
             }
 
         }
-    }
-    glEnd();
-    // Printing the samples points
-    /*glBegin(GL_POINTS);
-    for(int j = 0; j < points.size(); j++){
-        Point_3 p = points[j];
-        glColor3f(0.6f, 0.0f, 0.4f);
-        glVertex3f(p.x(), p.y(), p.z());
     }
     glEnd();*/
 }
@@ -219,7 +211,7 @@ void idle () {
 }
 
 void key (unsigned char keyPressed, int x, int y) {
-    Vec3f l = Vec3f (50.0, 0.0, 0.0);
+    Vec3d l = Vec3d (50.0, 0.0, 0.0);
     switch (keyPressed) {
     case 'f':
         if (fullScreen == true) {
@@ -245,9 +237,10 @@ void key (unsigned char keyPressed, int x, int y) {
 
         //vector<float> rad (mesh.V.size (), 0.0);
         for (unsigned int i = 0; i < mesh.V.size (); i++) {
-            Vec3f pl = l - mesh.V[i].p;
+            Vec3d pl = l - mesh.V[i].p;
             pl.normalize ();
-            float rad/*[i]*/ = max (dot(mesh.V[i].n, pl), 0.0f);
+            // float rad/*[i]*/ = max (dot(mesh.V[i].n, pl), 0.0f);
+            double rad/*[i]*/ = max (dot(mesh.V[i].n, pl), 0.0);
             mesh.V[i].n *= rad/*[i]*/;
         }
         break;
@@ -340,9 +333,9 @@ void initLines(int argc, char **argv, const char *filename){
 
         GC gc = shape->localGCs[index];
         HermiteCurve axis = gc.axis[0];
-        std::vector<Vec3f> points;
+        std::vector<Vec3d> points;
         for(int t = 0; t <= 3; t++){
-            points.push_back(axis.interpolate(t/3));
+            points.push_back(axis.interpolate(t/3.0));
         }
         lines.push_back(points);
     }
@@ -355,7 +348,7 @@ void initMeshes(int argc, char **argv, const char *filename){
     shape = new Shape();
     std::ifstream input(filename);
     input >> shape->mesh;
-    shape->initLocalGCs(argv[1], argv[2], 0.01f, 2);
+    shape->initLocalGCs(argv[1], argv[2], 0.1f, 2);
     // loadPoints(argv[1]);
     int nbLocalGCs = shape->localGCs.size();
     std::cout << "There is " << nbLocalGCs << " local GCs." << std::endl;

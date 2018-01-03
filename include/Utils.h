@@ -17,7 +17,7 @@
 
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/wlop_simplify_and_regularize_point_set.h>
-
+#include <CGAL/number_utils.h> // for CGAL::sqrt
 
 typedef CGAL::Surface_mesh<Point_3> CGAL_Mesh;
 typedef std::vector<K::Point_3> Polyline_type;
@@ -91,7 +91,7 @@ class Utils{
 		}
 
 		// Filename need to be .off format
-		static std::vector<Point_3> cross_section(Vec3f normal, Vec3f p, const char* filename){
+		static std::vector<Point_3> cross_section(Vec3d normal, Vec3d p, const char* filename){
 
 		    Polylines polylines;
 		    std::ifstream input(filename);
@@ -104,10 +104,10 @@ class Utils{
 		    // Slicer constructor from the mesh
 		    CGAL::Polygon_mesh_slicer<CGAL_Mesh, K> slicer(mesh);
 
-		    float a = normal[0];
-		    float b = normal[1];
-		    float c = normal[2];
-		    float d = -a*p[0] - b*p[1] - c*p[2];
+		    double a = normal[0];
+		    double b = normal[1];
+		    double c = normal[2];
+		    double d = -a*p[0] - b*p[1] - c*p[2];
 
 		    //Equation of plane is a*x + b*y + c*z + d = 0
 		    slicer(K::Plane_3(a, b, c, d), std::back_inserter(polylines));
@@ -130,15 +130,15 @@ class Utils{
 
 		    return polylines;
 		}*/
-		static std::vector<Point_3> cross_section(Vec3f normal, Vec3f p, CGAL_Mesh mesh){
+		static std::vector<Point_3> cross_section(Vec3d normal, Vec3d p, CGAL_Mesh mesh){
 
 		    Polylines polylines;
 		    CGAL::Polygon_mesh_slicer<CGAL_Mesh, K> slicer(mesh);
 
-		    float a = normal[0];
-		    float b = normal[1];
-		    float c = normal[2];
-		    float d = -a*p[0] - b*p[1] - c*p[2];
+		    double a = normal[0];
+		    double b = normal[1];
+		    double c = normal[2];
+		    double d = -a*p[0] - b*p[1] - c*p[2];
 
 		    //Equation of plane is a*x + b*y + c*z + d = 0
 		    slicer(K::Plane_3(a, b, c, d), std::back_inserter(polylines));
@@ -146,7 +146,7 @@ class Utils{
 		    return getAllPoints(polylines);
 		}
 
-		static float Haussdorf(std::vector<Point_3> ci_samples, std::vector<Point_3> cj_samples){
+		static double Haussdorf(std::vector<Point_3> ci_samples, std::vector<Point_3> cj_samples){
 
 			//The sample points are 2D points but I consider them as 3D points with y = 0 (so I can use distance method
 			//from CGAL)
@@ -161,18 +161,18 @@ class Utils{
 				if(size_j == 0){
 					std::cout << "cj_samples is empty" << std::endl;
 				}
-				return 0.0f;
+				return 0.0;
 			}
 
 			// computes h(ci, cj)
-			float max_ij = 0.f;
+			double max_ij = 0.0;
 			for(int k = 0; k < size_i; k++){
 
 				// Initialization of shortest
-				float shortest = std::sqrt(CGAL::squared_distance(ci_samples[k], cj_samples[0]));
+				double shortest = CGAL::sqrt(CGAL::to_double(CGAL::squared_distance(ci_samples[k], cj_samples[0])));
 				for(int h = 0; h < size_j; h++){
 
-					float d = std::sqrt(CGAL::squared_distance(ci_samples[k], cj_samples[h]));
+					double d = CGAL::sqrt(CGAL::to_double(CGAL::squared_distance(ci_samples[k], cj_samples[h])));
 					if (d < shortest){
 						shortest = d;
 					}
@@ -183,11 +183,11 @@ class Utils{
 			}
 
 			// computes h(cj, ci)
-			float max_ji = 0.f;
+			double max_ji = 0.0;
 			for(int h = 0; h < size_j; h++){
-				float shortest = std::sqrt(CGAL::squared_distance(cj_samples[h], ci_samples[0]));
+				double shortest = CGAL::sqrt(CGAL::to_double(CGAL::squared_distance(cj_samples[h], ci_samples[0])));
 				for(int k = 0; k < size_i; k++){
-					float d = std::sqrt(CGAL::squared_distance(cj_samples[h], ci_samples[k]));
+					double d = CGAL::sqrt(CGAL::to_double(CGAL::squared_distance(cj_samples[h], ci_samples[k])));
 					if (d < shortest){
 						shortest = d;
 					}
@@ -221,7 +221,7 @@ class Utils{
 		  	//parameters
 		  	const double retain_percentage = 2;   // percentage of points to retain.
 		 	const double neighbor_radius = 0.5;   // neighbors size.
-		  	std::cout << "ici"<<std::endl;
+		  	// std::cout << "before samplePoints"<<std::endl;
 		  	CGAL::wlop_simplify_and_regularize_point_set
 		                          <Concurrency_tag>
 		                          (points.begin(),
@@ -230,7 +230,7 @@ class Utils{
 		                           retain_percentage,
 		                           neighbor_radius
 		                           );
-
+		  	// std::cout << "after samplePoints"<<std::endl;
 		  	return output;
 		}
 

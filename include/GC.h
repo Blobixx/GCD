@@ -10,11 +10,11 @@ class GC {
 
 	public:
 
-		Vec3f p; // Point p for which the local GC has been constructed at
-		Vec3f rosa_normal; // Normal of the original local GC
+		Vec3d p; // Point p for which the local GC has been constructed at
+		Vec3d rosa_normal; // Normal of the original local GC
 		std::vector<HermiteCurve> axis; //Axis = list of control points
-		Vec3f ps; // Starting point of this axis
-		Vec3f pe; // End point of the axis
+		Vec3d ps; // Starting point of this axis
+		Vec3d pe; // End point of the axis
 		const char* shape; // Mesh model
 		// Set of profiles curves of GC
 		// std::vector<Polylines> profiles;
@@ -26,19 +26,19 @@ class GC {
 		std::vector<Point_3> aligned_centroids;
 		int nb_profile_samples = 6;
 
-		GC(Vec3f _p, Vec3f _normal){
+		GC(Vec3d _p, Vec3d _normal){
 			p = _p;
 			rosa_normal = _normal;
 			shape = "../hand_mesh.off";
 		}
 
-		GC(std::vector<HermiteCurve> _axis, Vec3f _ps, Vec3f _pe){
+		GC(std::vector<HermiteCurve> _axis, Vec3d _ps, Vec3d _pe){
 			axis = _axis;
 			ps = _ps;
 			pe = _pe;
 			shape = "../hand_mesh.off";
 		}
-		/*GC(std::vector<HermiteCurve> _axis, Vec3f _ps, Vec3f _pe, std::vector<Polylines> _profiles){
+		/*GC(std::vector<HermiteCurve> _axis, Vec3d _ps, Vec3d _pe, std::vector<Polylines> _profiles){
 			axis = _axis;
 			ps = _ps;
 			pe = _pe;
@@ -59,7 +59,7 @@ class GC {
 				profiles.push_back(copy_polylines);
 			}
 		}*/
-		GC(std::vector<HermiteCurve> _axis, Vec3f _ps, Vec3f _pe, Vector_vector_point_3 _profiles){
+		GC(std::vector<HermiteCurve> _axis, Vec3d _ps, Vec3d _pe, Vector_vector_point_3 _profiles){
 			axis = _axis;
 			ps = _ps;
 			pe = _pe;
@@ -103,15 +103,15 @@ class GC {
 			}
 		}*/
 
-		float cylindricity(float C, float alpha);
-		float straightness(float C);
-		float profileVariation();
+		double cylindricity(double C, double alpha);
+		double straightness(double C);
+		double profileVariation();
 		// Finds point with the maximun distant to the line between start_point and end_point
 		controlPoint_t findMaxDistToLine(Point_3 start_point, Point_3 end_point);
 		// Samples the profile curve with nb_samples samples points.
 		std::vector<Point_3> sampleProfileCurve(std::vector<Point_3> profile);
 		GC merge(GC b);
-		float generateApproximatedProfileCurves(Vector_vector_point_3 profiles_samples);
+		double generateApproximatedProfileCurves(Vector_vector_point_3 profiles_samples);
 		// Returns a vector with all the points belonging to the GC
 		std::vector<Point_3> getAllPoints();
 };

@@ -21,7 +21,7 @@ class Shape {
 		// std::vector<Vec3f> loadPointCloud();
 		// // Find rosa plane at point p. Returns plane's normal.
 		// std::vector<Vec3f> findRosaPlane(Vec3f p);
-		void initLocalGCs(const char* pointsFile, const char* normalsFile, float espilon, int nbProfiles);
+		void initLocalGCs(const char* pointsFile, const char* normalsFile, double espilon, int nbProfiles);
 		// void constructLocalGCs(float epsilon, int nbProfiles);
 
 };
