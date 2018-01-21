@@ -103,8 +103,8 @@ void init (const char * modelFilename) {
     glEnable (GL_CULL_FACE);
     glDepthFunc (GL_LESS);
     glEnable (GL_DEPTH_TEST);
-    glClearColor (0.2f, 0.2f, 0.3f, 1.0f);
-    // glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+//    glClearColor (0.2f, 0.2f, 0.3f, 1.0f);
+     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glEnable (GL_COLOR_MATERIAL); // Dont forget this if you want to use glColor3f
 }
 
@@ -126,27 +126,27 @@ void clear () {
 
 void draw () {
 
-    // glBegin (GL_TRIANGLES);
+    glBegin (GL_TRIANGLES);
 
-    // for (unsigned int i = 0; i < mesh.T.size (); i++){
-    //     for (unsigned int j = 0; j < 3; j++) {
-    //         const Vertex & v = mesh.V[mesh.T[i].v[j]];
-    //         glColor3f(0.6f, 0.6f, 1.0f);
-    //         glNormal3f (v.n[0], v.n[1], v.n[2]);
-    //         glVertex3f (v.p[0], v.p[1], v.p[2]);
-    //     }
-    // }
-
-    // /*for(int index = 0; index < meshes.size(); index++){
-    //     CGAL_Mesh gc = meshes[index];
-    //     BOOST_FOREACH(CGAL_Mesh::Vertex_index vd, gc.vertices()){
-    //         Point_3 point =  gc.point(vd);
-    //         glColor3f(0.6f, 0.0f, 0.4f);
-    //         glVertex3f(point.x(), point.y(), point.z());
-    //     }
-    // }*/
-    // glEnd ();
-
+    // Hand mesh
+    for (unsigned int i = 0; i < mesh.T.size(); i++){
+        for (unsigned int j = 0; j < 3; j++) {
+            const Vertex & v = mesh.V[mesh.T[i].v[j]];
+            // glColor3f(0.6f, 0.6f, 1.0f);
+            glColor4f(0.8f, 0.8f, 0.8f, 0.3f);
+            glNormal3f (v.n[0], v.n[1], v.n[2]);
+            glVertex3f (v.p[0], v.p[1], v.p[2]);
+        }
+    }
+    glEnd ();
+    /*for(int index = 0; index < meshes.size(); index++){
+        CGAL_Mesh gc = meshes[index];
+        BOOST_FOREACH(CGAL_Mesh::Vertex_index vd, gc.vertices()){
+            Point_3 point =  gc.point(vd);
+            glColor3f(0.6f, 0.0f, 0.4f);
+            glVertex3f(point.x(), point.y(), point.z());
+        }
+    }*/
 
     // Printing axis as line [ps,pe]
     glBegin(GL_LINES);
@@ -154,41 +154,44 @@ void draw () {
     for(int i = 0; i < shape->localGCs.size(); i++){
 
         GC gc = shape->localGCs[i];
-        int n = gc.axis.size();
-        Vec3d p0 = gc.axis[0].interpolate(0.0);
-        Vec3d p1 = gc.axis[n-1].interpolate(1.0);
-        glColor3f(0.6f, 0.0f, 0.4f);
-        glVertex3f(p0[0], p0[1], p0[2]);
-        glVertex3f(p1[0], p1[1], p1[2]);
+        assert(gc.axis.size() == 1);
+        for(int j = 0; j < gc.axis.size(); j++){
+            Vec3d p0 = gc.axis[j].interpolate(0.0);
+            Vec3d p1 = gc.axis[j].interpolate(1.0);
+            glColor3f(0.0f, 1.0f, 0.0f);
+            glVertex3f(p0[0], p0[1], p0[2]);
+            glVertex3f(p1[0], p1[1], p1[2]);
+
+        }
     }
     glEnd();
 
     // Printing profile curves
-    /*glBegin(GL_POINTS);
+   glBegin(GL_POINTS);
 
-    for(int i = 0; i < shape->localGCs.size(); i++){
+   for(int i = 0; i < shape->localGCs.size(); i++){
 
-        GC gc = shape->localGCs[i];
-        for(int j = 0; j < gc.aligned_profiles.size(); j++){
+       GC gc = shape->localGCs[i];
+       for(int j = 0; j < gc.rotatedProfiles.size(); j++){
 
-            std::vector<Point_3> profile = gc.aligned_profiles[j];
-            for(int k = 0; k < profile.size(); k++){
+           std::vector<Point_3> profile = gc.rotatedProfiles[j];
+           for(int k = 0; k < profile.size(); k++){
 
-                Point_3 p = profile[k];
-                glColor3f(0.6f, 0.0f, 0.4f);
-                glVertex3f(CGAL::to_double(p.x()), CGAL::to_double(p.y()), CGAL::to_double(p.z()));
-            }
+               Point_3 p = profile[k];
+               glColor3f(0.6f, 0.0f, 0.4f);
+               glVertex3f(CGAL::to_double(p.x()), CGAL::to_double(p.y()), CGAL::to_double(p.z()));
+           }
 
-        }
-    }
-    glEnd();*/
+       }
+   }
+   glEnd();
 }
 
 void display () {
     glLoadIdentity ();
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     camera.apply ();
-    draw ();
+    draw();
     glFlush ();
     glutSwapBuffers ();
 }
@@ -308,25 +311,12 @@ void reshape(int w, int h) {
     camera.resize (w, h);
 }
 
-void loadPoints(char* filename){
-
-    std::ifstream file(filename);
-    int nbPts;
-    file >> nbPts;
-    float x, y, z;
-    for(int i = 0; i < nbPts; i++){
-
-        file >> x >> y >> z;
-        points.push_back(Point_3(x, y ,z));
-    }
-}
-
-void initLines(int argc, char **argv, const char *filename){
+/*void initLines(int argc, char **argv, const char *filename){
 
     Shape *shape = new Shape();
     std::ifstream input(filename);
     input >> shape->mesh;
-    shape->initLocalGCs(argv[1], argv[2], 0.1f, 2);
+    shape->initLocalGCs(argv[1], argv[2], 0.1);
     int nbLocalGCs = shape->localGCs.size();
 
     for(int index = 0; index < nbLocalGCs; index++){
@@ -340,24 +330,24 @@ void initLines(int argc, char **argv, const char *filename){
         lines.push_back(points);
     }
     std::cout << "There is " << lines.size() << " local GCs." << std::endl;
-}
+}*/
 
 void initMeshes(int argc, char **argv, const char *filename){
 
-    // Shape *shape = new Shape();
     shape = new Shape();
     std::ifstream input(filename);
     input >> shape->mesh;
-    shape->initLocalGCs(argv[1], argv[2], 0.1f, 2);
-    // loadPoints(argv[1]);
-    int nbLocalGCs = shape->localGCs.size();
-    std::cout << "There is " << nbLocalGCs << " local GCs." << std::endl;
+    shape->initLocalGCs(argv[1], argv[2], 0.001);
 
-    for(int index = 0; index < nbLocalGCs; index++){
+    // shape->mergeLocalGCs();
 
-        std::vector<Point_3> GC_points = shape->localGCs[index].getAllPoints();
-        meshes.push_back(Utils::generateMesh(GC_points));
-    }
+    // int nbLocalGCs = shape->localGCs.size();
+
+    // for(int index = 0; index < nbLocalGCs; index++){
+
+    //     std::vector<Point_3> GC_points = shape->localGCs[index].getAllPoints();
+    //     meshes.push_back(Utils::generateMesh(GC_points));
+    // }
 }
 
 void initGlut(int argc, char **argv){

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <cmath>
 #include <CGAL/Advancing_front_surface_reconstruction.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/array.h>
@@ -37,9 +38,28 @@ typedef CGAL::Sequential_tag Concurrency_tag;
 #endif
 
 struct controlPoint_t {
-	float parameter;
-	float dist;
-	int axis_part; // component of the axis (Polylines) the point belongs to
+
+	int axis_part; // to which hermite curve of the axis the point belongs to
+	double parameter;
+	double dist;
+
+	controlPoint_t(): axis_part(0), parameter(0.0), dist(0.0) {}
+	controlPoint_t(int axis_part, double parameter, double dist): axis_part(axis_part),
+																parameter(parameter),
+																dist(dist) {}
+    bool isSameAs(const controlPoint_t _control) {
+        if(axis_part == _control.axis_part && parameter == _control.parameter && dist == _control.dist){
+            return true;
+        }
+        return false;
+    };
+
+    inline controlPoint_t& operator= (const controlPoint_t & _cp) {
+            axis_part = _cp.axis_part;
+            parameter = _cp.parameter;
+            dist = _cp.dist;
+            return (*this);
+    };
 };
 
 struct Construct{
@@ -197,7 +217,6 @@ class Utils{
 				}
 			}
 
-			// returns max(h(ci, cj), h(cj, ci))
 			return std::max(max_ij, max_ji);
 
 		}
@@ -215,10 +234,25 @@ class Utils{
 			return allPoints;
 		}
 
-		static std::vector<Point_3> samplePoints(std::vector<Point_3> points, int nb_samples){
+		static std::vector<Point_3> sampleProfileCurve(std::vector<Point_3> points, int nb_samples){
+
+			assert(nb_samples > 0);
+
+			int nbPts = points.size();
+			// assert(nbPts > 0);
+
+			if( nbPts < nb_samples){
+				return points;
+			}
 
 		  	std::vector<Point_3> output;
-		  	//parameters
+
+		  	int step = std::floor(nbPts/nb_samples);
+		  	for(int i = 0; i < nbPts; i+= step){
+		  		output.push_back(points[i]);
+		  	}
+		  	/*//parameters
+		  	// double percent = (double)nb_samples/points.size();
 		  	const double retain_percentage = 2;   // percentage of points to retain.
 		 	const double neighbor_radius = 0.5;   // neighbors size.
 		  	// std::cout << "before samplePoints"<<std::endl;
@@ -230,7 +264,7 @@ class Utils{
 		                           retain_percentage,
 		                           neighbor_radius
 		                           );
-		  	// std::cout << "after samplePoints"<<std::endl;
+		  	std::cout <<"nbSamples " << retain_percentage*points.size() << ", output size: " << output.size() << std::endl;*/
 		  	return output;
 		}
 

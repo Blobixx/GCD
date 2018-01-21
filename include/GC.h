@@ -21,10 +21,13 @@ class GC {
 		Vector_vector_point_3 profiles;
 		std::vector<CGAL_Mesh> approximatedShapes;
 		// std::vector<Polylines> aligned_profiles;
-		Vector_vector_point_3 aligned_profiles;
+		Vector_vector_point_3 alignedProfiles;
 		// Centroids of each profiles curves aligned on a straigt line
-		std::vector<Point_3> aligned_centroids;
+		std::vector<Point_3> alignedCentroids;
+		Vector_vector_point_3 originalProfiles;
+		Vector_vector_point_3 rotatedProfiles;
 		int nb_profile_samples = 6;
+		double cylindricity;
 
 		GC(Vec3d _p, Vec3d _normal){
 			p = _p;
@@ -38,6 +41,7 @@ class GC {
 			pe = _pe;
 			shape = "../hand_mesh.off";
 		}
+
 		/*GC(std::vector<HermiteCurve> _axis, Vec3d _ps, Vec3d _pe, std::vector<Polylines> _profiles){
 			axis = _axis;
 			ps = _ps;
@@ -102,18 +106,24 @@ class GC {
 				profiles.push_back(copy_polylines);
 			}
 		}*/
-
-		double cylindricity(double C, double alpha);
+		inline GC& operator= (const GC& _gc) {
+                ps = _gc.ps;
+                pe = _gc.pe;
+                axis = _gc.axis;
+                cylindricity = _gc.cylindricity;
+                return (*this);
+        };
+		double computeCylindricity(double C, double alpha);
 		double straightness(double C);
 		double profileVariation();
+		double debugProfileVariation();
 		// Finds point with the maximun distant to the line between start_point and end_point
-		controlPoint_t findMaxDistToLine(Point_3 start_point, Point_3 end_point);
-		// Samples the profile curve with nb_samples samples points.
-		std::vector<Point_3> sampleProfileCurve(std::vector<Point_3> profile);
+		controlPoint_t findMaxDistToLine(controlPoint_t controlPtA, controlPoint_t controlPtB);
 		GC merge(GC b);
 		double generateApproximatedProfileCurves(Vector_vector_point_3 profiles_samples);
 		// Returns a vector with all the points belonging to the GC
 		std::vector<Point_3> getAllPoints();
+		void DP(controlPoint_t controlPtA, controlPoint_t controlPtB, double& _straightness);
 };
 
 #endif // GC_H
