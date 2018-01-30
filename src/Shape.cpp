@@ -22,12 +22,13 @@ void Shape::initLocalGCs(const char* pointsFile, const char* normalsFile, double
     // int nb4 = 0;
     // int nb5 = 0;
     // int nb6 = 0;
-    for(int index = 0; index < 100; index++){
+    std::cout << "There are " << nb_GC <<" potential local GCs" << std::endl;
+    for(int index = 0; index < nb_GC; index++){
 
     	std::cout << "Iteration " << index << std::endl;
     	pFile >> x >> y >> z;
     	nFile >> u >> v >> w;
-        if(index == 64 || index == 65|| index == 67|| index == 71 || index == 207 | index == 256 || index == 276 || index == 281 || index == 304 || index == 317
+        if(index == 47 || index == 64 || index == 65|| index == 67|| index == 71 || index == 207 || index == 249 || index == 256 || index == 276 || index == 281 || index == 304 || index == 317
     		|| index == 341 )
     		continue;
 
@@ -68,12 +69,12 @@ void Shape::initLocalGCs(const char* pointsFile, const char* normalsFile, double
 		// 	nb6++;
 		// }
         std::cout << "Cylindricity = " << localGC.cylindricity << std::endl;
-		/*if(localGC.cylindricity < tau){
-			localGCs.push_back(localGC);
-		}*/
-		if(index%2 == 0){
+		if(localGC.cylindricity < tau){
 			localGCs.push_back(localGC);
 		}
+		// if(index%2 == 0){
+		// 	localGCs.push_back(localGC);
+		// }
 
     }
     std::cout << "End of initLocalGCs. localGCs size is " << localGCs.size() << std::endl;
@@ -98,7 +99,7 @@ void Shape::mergeLocalGCs(){
 		isMerged[generatorIndex] = true;
 		// tmp.push_back(gcA);
 		int size = tmp.size();
-		std::cout << "Currently " << size <<" non local GCs." << std::endl;
+        std::cout << "Currently " << nonLocalGCs.size() <<" non local GCs." << std::endl;
         GC nonLocalGC = gcA;
 		int index = 0;
 		while(index < nbLocalGCs){
@@ -123,7 +124,7 @@ void Shape::mergeLocalGCs(){
 			}
 			index++;
 		}
-
+		nonLocalGCs.push_back(nonLocalGC);
 
 		assert(isMerged.size() == localGCs.size());
 		int notmerged = 0;
@@ -150,6 +151,6 @@ void Shape::mergeLocalGCs(){
 
 	}
 
-	nonLocalGCs = tmp;
+	// nonLocalGCs = tmp;
 	std::cout << "End of mergeLocalGCs. nonLocalGCs size is " << nonLocalGCs.size() << std::endl;
 }

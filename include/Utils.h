@@ -110,6 +110,29 @@ class Utils{
 		  return m;
 		}
 
+		static CGAL_Mesh generateMesh(Vector_vector_point_3 alignedProfilesSamples, std::vector<bool> control_profiles_indices){
+
+			std::vector<Point_3> points;
+			for(int i = 0; i < control_profiles_indices.size(); i++){
+				if(control_profiles_indices[i]){
+					points.insert(points.end(), alignedProfilesSamples[i].begin(), alignedProfilesSamples[i].end()-1);
+				}
+			}
+
+			CGAL_Mesh m;
+			/*std::copy(std::istream_iterator<Point_3>(in),
+			        std::istream_iterator<Point_3>(),
+			        std::back_inserter(points));*/
+			// std::cout << "step 01" << std::endl;
+			Construct construct(m,points.begin(),points.end());
+			// std::cout << "step 02" << std::endl;
+			CGAL::advancing_front_surface_reconstruction(points.begin(),
+			                                           points.end(),
+			                                           construct);
+			// std::cout << "step 03" << std::endl;
+			return m;
+		}
+
 		// Filename need to be .off format
 		static std::vector<Point_3> cross_section(Vec3d normal, Vec3d p, const char* filename){
 
@@ -266,6 +289,19 @@ class Utils{
 		                           );
 		  	std::cout <<"nbSamples " << retain_percentage*points.size() << ", output size: " << output.size() << std::endl;*/
 		  	return output;
+		}
+
+		static double perpendicularDistance(Vec3d pt, Vec3d lineStart, Vec3d lineEnd){
+
+            const Vec3d lineDir = lineEnd - lineStart;
+            const Vec3d m = lineStart - pt;
+
+            Vec3d tmp = cross(m, lineDir);
+            double l = tmp.length();
+            double dirL = lineDir.length();
+            double d = l/dirL;
+
+			return d;
 		}
 
 };

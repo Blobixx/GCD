@@ -6,7 +6,11 @@
 
 void GC::DP(controlPoint_t controlPtA, controlPoint_t controlPtB, double& _straightness){
 
-	double epsilon = 0.16;
+	if(controlPtA.axis_part == controlPtB.axis_part && controlPtA.dist == controlPtB.dist &&
+		controlPtA.parameter == controlPtB.parameter){
+        return;// _straightness;
+	}
+    double epsilon = 0.4;
 
 	int axisSize = axis.size();
 	// J'ai pas besoin de la dist en fait dans les controlPoint ???
@@ -14,8 +18,8 @@ void GC::DP(controlPoint_t controlPtA, controlPoint_t controlPtB, double& _strai
 	// controlPoint_t axisEnd_t(axisSize-1, 1.0);
 	Vec3d lineStart = axis[controlPtA.axis_part].interpolate(controlPtA.parameter);
 	Vec3d lineEnd = axis[controlPtB.axis_part].interpolate(controlPtB.parameter);
-	Point_3 lineStart_3(lineStart[0], lineStart[1], lineStart[2]);
-	Point_3 lineEnd_3(lineEnd[0], lineEnd[1], lineEnd[2]);
+	// Point_3 lineStart_3(lineStart[0], lineStart[1], lineStart[2]);
+	// Point_3 lineEnd_3(lineEnd[0], lineEnd[1], lineEnd[2]);
 
 
 	int step = 50;
@@ -30,9 +34,9 @@ void GC::DP(controlPoint_t controlPtA, controlPoint_t controlPtB, double& _strai
 
 			double param = t/d_step;
             Vec3d curPt = axis[part].interpolate(param);
-			Point_3 curPt_3(curPt[0], curPt[1], curPt[2]);
-            double d = std::sqrt(CGAL::to_double(squared_distance(curPt_3, Line_3(lineStart_3, lineEnd_3))));
-
+			// Point_3 curPt_3(curPt[0], curPt[1], curPt[2]);
+            // double d = std::sqrt(CGAL::to_double(squared_distance(curPt_3, Line_3(lineStart_3, lineEnd_3))));
+            double d = Utils::perpendicularDistance(curPt, lineStart, lineEnd);
 			if( d > maxDist){
 				maxDist = d;
 				maxAxisPart = part;
@@ -40,7 +44,7 @@ void GC::DP(controlPoint_t controlPtA, controlPoint_t controlPtB, double& _strai
 			}
 		}
 	}
-
+    //std::cout << "maxDist: " << maxDist << std::endl;
 	if(maxDist > epsilon){
 
         _straightness += maxDist;
@@ -131,6 +135,44 @@ double GC::straightness(double C){
 	return straightness;
 }*/
 
+void GC::computeProfiles(){
+
+	/* ---------- SAMPLING OF AXIS --------- */
+
+	// Sample the axis with a dense set of points.
+	// Computes profile curves as cross sections with the shape perpendicular to the axis at point
+	int nbCentroidsPerPart = 3;
+	int nbAxisParts = axis.size();
+
+	for(int j = 0; j < nbAxisParts; j++){
+
+		HermiteCurve hermiteCurve = axis[j];
+		for(int i = 0; i < nbCentroidsPerPart; i++){
+
+			double t  = (double)i/nbCentroidsPerPart;
+			Vec3d s = hermiteCurve.interpolate(t);
+			Vec3d tangentAtS = hermiteCurve.get_tangent(t);
+			Vec3d orthPlaneAtS = normalize(tangentAtS); //The normal of the plane perpendicular to axis at p is the tangeant at p
+			std::vector<Point_3> out = Utils::cross_section(orthPlaneAtS, s, shape);
+			if(out.size() != 0){
+				profiles.push_back(out);
+				profilesCentroids.push_back(Point_3(s[0], s[1], s[2]));
+				profilesNormals.push_back(orthPlaneAtS);
+			}
+		}
+	}
+	// Adds pe which is not added with the previous computation
+	Vec3d tangentAtPe = axis[nbAxisParts-1].get_tangent(1.0);
+	Vec3d orthPlaneAtPe = normalize(tangentAtPe); //The normal of the plane perpendicular to axis at p is the tangeant at p
+	std::vector<Point_3> out_pe = Utils::cross_section(orthPlaneAtPe, pe, shape);
+	if(out_pe.size() != 0){
+		profiles.push_back(out_pe);
+		profilesCentroids.push_back(Point_3(pe[0], pe[1], pe[2]));
+		profilesNormals.push_back(orthPlaneAtPe);
+	}
+
+	/* ---------- END SAMPLING OF AXIS --------- */
+}
 controlPoint_t GC::findMaxDistToLine(controlPoint_t controlPtA, controlPoint_t controlPtB){
 
 	// Get control points coordinates
@@ -177,74 +219,28 @@ controlPoint_t GC::findMaxDistToLine(controlPoint_t controlPtA, controlPoint_t c
 	return maxControlPt;
 }
 
-double GC::debugProfileVariation(){
+double GC::profileVariation(){
 
 	// std::cout << "Starting computing profile variation ..." << std::endl;
 
-	std::vector<Vec3d> originalCentroids; // centroids points on axis
+	// std::vector<Vec3d> originalCentroids; // centroids points on axis
 	// Vector_vector_point_3 originalProfiles;
 	std::vector<Vec3d> orthPlanesNormals; // Vector of normals of the plane perpendicular the axis at each sample points
-	std::vector<Point_3> rotatedCentroids;
+	// std::vector<Point_3> rotatedCentroids;
 	// Vector_vector_point_3 rotatedProfiles;
-
-	/* ---------- SAMPLING OF AXIS --------- */
-
-	// Sample the axis with a dense set of points.
-	// Computes profile curves as cross sections with the shape perpendicular to the axis at point
-	int nbCentroidsPerPart = 3;
-	int nbAxisParts = axis.size();
-
-	for(int j = 0; j < nbAxisParts; j++){
-
-		HermiteCurve hermiteCurve = axis[j];
-		for(int i = 0; i < nbCentroidsPerPart; i++){
-
-			double t  = (double)i/nbCentroidsPerPart;
-			Vec3d s = hermiteCurve.interpolate(t);
-			Vec3d tangentAtS = hermiteCurve.get_tangent(t);
-			Vec3d orthPlaneAtS = normalize(tangentAtS); //The normal of the plane perpendicular to axis at p is the tangeant at p
-			std::vector<Point_3> out = Utils::cross_section(orthPlaneAtS, s, shape);
-			if(out.size() != 0){
-				originalProfiles.push_back(out);
-				originalCentroids.push_back(s);
-				orthPlanesNormals.push_back(orthPlaneAtS);
-			}
-		}
-	}
-	// Adds pe which is not added with the previous computation
-	Vec3d tangentAtPe = axis[nbAxisParts-1].get_tangent(1.0);
-	Vec3d orthPlaneAtPe = normalize(tangentAtPe); //The normal of the plane perpendicular to axis at p is the tangeant at p
-	std::vector<Point_3> out_pe = Utils::cross_section(orthPlaneAtPe, pe, shape);
-	if(out_pe.size() != 0){
-		originalProfiles.push_back(out_pe);
-		originalCentroids.push_back(pe);
-		orthPlanesNormals.push_back(orthPlaneAtPe);
-	}
-	int nbCentroids = originalCentroids.size();
-
-	/* ---------- END SAMPLING OF AXIS --------- */
-
-	/* ---- DEBUG ---- */
-	assert(nbCentroids != 0);
-	assert(originalProfiles.size() == originalCentroids.size());
-	for(int idx = 0; idx < originalProfiles.size(); idx ++){
-		assert(originalProfiles[idx].size() != 0);
-	}
-	/* ---- END DEBUG ---- */
 
 	/* ---------- TRANSFORMATION OF THE PROFILES SO THEY ARE PARALLEL --------- */
 	// Profiles parallel to plane with normal vector(0,1,0)
 	Vec3d n(0.0,1.0,0.0);
-	for(int index = 0; index < originalProfiles.size(); index++){
+	for(int index = 0; index < profiles.size(); index++){
 
-		Vec3d centroid = originalCentroids[index];
+		Vec3d centroid = profilesCentroids[index];
 		Point_3 centroid_3(centroid[0], centroid[1], centroid[2]); //Vec3d to Point_3
 
-		Vec3d orth_plane_at_centroid = orthPlanesNormals[index];
+		Vec3d orth_plane_at_centroid = profilesNormals[index];
 		orth_plane_at_centroid.normalize();
-		assert(fabs(orth_plane_at_centroid.length() - 1.0) < 0.00000000001); // Check if normalized
 		double cos = dot(orth_plane_at_centroid, n);
- 		Vec3d v = cross(orth_plane_at_centroid, n);
+		Vec3d v = cross(orth_plane_at_centroid, n);
 		double v1 = v[0];
 		double v2 = v[1];
 		double v3 = v[2];
@@ -254,7 +250,7 @@ double GC::debugProfileVariation(){
 
 			// Profile is already orthogonal to n
 			// Add the profile itself in rotated_profiles and centroid
-			rotatedProfiles.push_back(originalProfiles[index]);
+			rotatedProfiles.push_back(profiles[index]);
 			// rotatedCentroids.push_back(centroid_3);
 
 		}else{
@@ -271,7 +267,7 @@ double GC::debugProfileVariation(){
 			// rotatedCentroids.push_back(rotated_centroid);
 
 			// Apply rotation on the profile
-			std::vector<Point_3> profilePts = originalProfiles[index];
+            std::vector<Point_3> profilePts = profiles[index];
 			std::vector<Point_3> rotatedProfilePts;
 			for(int pt = 0; pt < profilePts.size(); pt++){
 
@@ -284,123 +280,8 @@ double GC::debugProfileVariation(){
 	/* ---------- END OF TRANSFORMATION OF THE PROFILES SO THEY ARE PARALLEL --------- */
 
 	/* ---- DEBUG ---- */
-	assert(originalProfiles.size() == rotatedProfiles.size());
+    assert(profiles.size() == rotatedProfiles.size());
 	// assert(originalCentroids.size() == rotatedCentroids.size());
-	for(int idx = 0; idx < rotatedProfiles.size(); idx++){
-		assert(rotatedProfiles[idx].size() != 0);
-	}
-	/* ---- END DEBUG ---- */
-
-	return 0.0;
-}
-double GC::profileVariation(){
-
-	// std::cout << "Starting computing profile variation ..." << std::endl;
-
-	std::vector<Vec3d> originalCentroids; // centroids points on axis
-	// Vector_vector_point_3 originalProfiles;
-	std::vector<Vec3d> orthPlanesNormals; // Vector of normals of the plane perpendicular the axis at each sample points
-	std::vector<Point_3> rotatedCentroids;
-	// Vector_vector_point_3 rotatedProfiles;
-
-	/* ---------- SAMPLING OF AXIS --------- */
-
-	// Sample the axis with a dense set of points.
-	// Computes profile curves as cross sections with the shape perpendicular to the axis at point
-	int nbCentroidsPerPart = 3;
-	int nbAxisParts = axis.size();
-
-	for(int j = 0; j < nbAxisParts; j++){
-
-		HermiteCurve hermiteCurve = axis[j];
-		for(int i = 0; i < nbCentroidsPerPart; i++){
-
-			double t  = (double)i/nbCentroidsPerPart;
-			Vec3d s = hermiteCurve.interpolate(t);
-			Vec3d tangentAtS = hermiteCurve.get_tangent(t);
-			Vec3d orthPlaneAtS = normalize(tangentAtS); //The normal of the plane perpendicular to axis at p is the tangeant at p
-			std::vector<Point_3> out = Utils::cross_section(orthPlaneAtS, s, shape);
-			if(out.size() != 0){
-				originalProfiles.push_back(out);
-				originalCentroids.push_back(s);
-				orthPlanesNormals.push_back(orthPlaneAtS);
-			}
-		}
-	}
-	// Adds pe which is not added with the previous computation
-	Vec3d tangentAtPe = axis[nbAxisParts-1].get_tangent(1.0);
-	Vec3d orthPlaneAtPe = normalize(tangentAtPe); //The normal of the plane perpendicular to axis at p is the tangeant at p
-	std::vector<Point_3> out_pe = Utils::cross_section(orthPlaneAtPe, pe, shape);
-	if(out_pe.size() != 0){
-		originalProfiles.push_back(out_pe);
-		originalCentroids.push_back(pe);
-		orthPlanesNormals.push_back(orthPlaneAtPe);
-	}
-	int nbCentroids = originalCentroids.size();
-
-	/* ---------- END SAMPLING OF AXIS --------- */
-
-	/* ---- DEBUG ---- */
-	assert(nbCentroids != 0);
-	assert(originalProfiles.size() == originalCentroids.size());
-	for(int idx = 0; idx < originalProfiles.size(); idx ++){
-		assert(originalProfiles[idx].size() != 0);
-	}
-	/* ---- END DEBUG ---- */
-
-	/* ---------- TRANSFORMATION OF THE PROFILES SO THEY ARE PARALLEL --------- */
-	// Profiles parallel to plane with normal vector(0,1,0)
-	Vec3d n(0.0,1.0,0.0);
-	for(int index = 0; index < originalProfiles.size(); index++){
-
-		Vec3d centroid = originalCentroids[index];
-		Point_3 centroid_3(centroid[0], centroid[1], centroid[2]); //Vec3d to Point_3
-
-		Vec3d orth_plane_at_centroid = orthPlanesNormals[index];
-		orth_plane_at_centroid.normalize();
-		double cos = dot(orth_plane_at_centroid, n);
-		Vec3d v = cross(orth_plane_at_centroid, n);
-		double v1 = v[0];
-		double v2 = v[1];
-		double v3 = v[2];
-
-		// cases cos = 1.0 && cos = -1.0
-		if( std::fabs(cos + 1.0) < 0.00001 || std::fabs(cos - 1.0) < 0.00001){
-
-			// Profile is already orthogonal to n
-			// Add the profile itself in rotated_profiles and centroid
-			rotatedProfiles.push_back(originalProfiles[index]);
-			rotatedCentroids.push_back(centroid_3);
-
-		}else{
-
-			double inv = 1.0/(1.0+cos);
-			// Rotation to orient the plane so that its normal is n(0,1,0)
-			// This rotatation consits of aligning the plane normal with the vector n
-			Aff_transformation_3 rotation(1.0-(v2*v2+v3*v3)*inv, -1.0*v3+(v1*v2)*inv, v2+(v1*v3)*inv, 0,
-											v3+(v1*v2)*inv, 1.0-(v1*v1+v3*v3)*inv, -1.0*v1+(v2*v3)*inv, 0,
-											-1.0*v2+(v1*v3)*inv, v1+(v2*v3)*inv, 1.0-(v1*v1+v2*v2)*inv, 0, 1.0
-										);
-			// Apply rotation on centroid
-			Point_3 rotated_centroid = rotation.transform(centroid_3);
-			rotatedCentroids.push_back(rotated_centroid);
-
-			// Apply rotation on the profile
-			std::vector<Point_3> profilePts = originalProfiles[index];
-			std::vector<Point_3> rotatedProfilePts;
-			for(int pt = 0; pt < profilePts.size(); pt++){
-
-				Point_3 tmp = rotation.transform(profilePts[pt]);
-				rotatedProfilePts.push_back(tmp);
-			}
-			rotatedProfiles.push_back(rotatedProfilePts);
-		}
-	}
-	/* ---------- END OF TRANSFORMATION OF THE PROFILES SO THEY ARE PARALLEL --------- */
-
-	/* ---- DEBUG ---- */
-	assert(originalProfiles.size() == rotatedProfiles.size());
-	assert(originalCentroids.size() == rotatedCentroids.size());
 	for(int idx = 0; idx < rotatedProfiles.size(); idx++){
 		assert(rotatedProfiles[idx].size() != 0);
 	}
@@ -425,26 +306,27 @@ double GC::profileVariation(){
 
 	/* ---------- TRANSFORMATION SO THAT CENTROIDS REST ON A STRAIGHT LINE --------- */
 
-	Point_3 psPt = rotatedCentroids[0];
-	Point_3 pePt = rotatedCentroids[nbCentroids-1];
+	int nbCentroids = profiles.size();
+	Point_3 psPt = profilesCentroids[0];
+	Point_3 pePt = profilesCentroids[nbCentroids-1];
 	Line_3 line(psPt, pePt);
-	alignedCentroids.push_back(rotatedCentroids[0]);
-	alignedCentroids.push_back(rotatedCentroids[nbCentroids-1]);
+	alignedCentroids.push_back(profilesCentroids[0]);
+	alignedCentroids.push_back(profilesCentroids[nbCentroids-1]);
 	alignedProfiles.push_back(rotatedProfiles[0]);
 	alignedProfiles.push_back(rotatedProfiles[nbCentroids-1]);
 
 	// For each profile (except start and end), find the orthogonal projection
 	// of the centroid on the line. Then translates the profile and its centroid
-	for( int index = 1; index < rotatedCentroids.size()-1; index++){
+	for( int index = 1; index < profilesCentroids.size()-1; index++){
 
-		Point_3 rotatedCentroid = rotatedCentroids[index];
+		Point_3 centroid = profilesCentroids[index];
 		// Orthogonal projection of centroid on the line [ps,pe]
-		Point_3 centroidProjection = line.projection(rotatedCentroid);
-		Vector_3 translationVector(rotatedCentroid, centroidProjection); // Vector_3(a, b) return b-a vector
+		Point_3 centroidProjection = line.projection(centroid);
+		Vector_3 translationVector(centroid, centroidProjection); // Vector_3(a, b) return b-a vector
 
 		// Apply translation on centroid
 		Aff_transformation_3 translation(CGAL::TRANSLATION, translationVector);
-		Point_3 alignedCentroid = translation.transform(rotatedCentroid);
+		Point_3 alignedCentroid = translation.transform(centroid);
 		// Stores aligned centroid
 		alignedCentroids.push_back(alignedCentroid);
 
@@ -481,19 +363,18 @@ double GC::profileVariation(){
 
 	nb_profile_samples = 6;
 	// Vector containing the sample points for each curve
-	Vector_vector_point_3 profiles_samples;
 	for(int i = 0; i < alignedProfiles.size(); i++){
 
 		assert(alignedProfiles[i].size() != 0);
 		std::vector<Point_3> s(Utils::sampleProfileCurve(alignedProfiles[i], nb_profile_samples));
 		assert(s.size() != 0);
-		profiles_samples.push_back(s);
+		alignedProfilesSamples.push_back(s);
 	}
 
-	double profileVariation = generateApproximatedProfileCurves(profiles_samples);
-	std::vector<Point_3> cs_samples(Utils::sampleProfileCurve(alignedProfiles[0], nb_profile_samples));
-	std::vector<Point_3> ce_samples(Utils::sampleProfileCurve(alignedProfiles[alignedProfiles.size()-1], nb_profile_samples));
-	profileVariation += Utils::Haussdorf(cs_samples, ce_samples);
+	double profileVariation = generateApproximatedProfileCurves(alignedProfilesSamples);
+	std::vector<Point_3> csSamples(Utils::sampleProfileCurve(alignedProfiles[0], nb_profile_samples));
+	std::vector<Point_3> ceSamples(Utils::sampleProfileCurve(alignedProfiles[alignedProfiles.size()-1], nb_profile_samples));
+	profileVariation += Utils::Haussdorf(csSamples, ceSamples);
 
 	// std::cout << "End of profileVariation" << std::endl;
 	return profileVariation;
@@ -522,7 +403,7 @@ double GC::generateApproximatedProfileCurves(Vector_vector_point_3 profiles_samp
 	// control_profiles.insert(control_profiles.end(), cs_points.begin(), cs_points.end());
 	control_profiles_indices[0] = true;
 	std::vector<Point_3> ce_points = alignedProfiles[nb_profiles-1];
-	control_profiles.insert(control_profiles.end(), ce_points.begin(), ce_points.end()-1);
+	control_profiles.insert(control_profiles.end(), ce_points.begin(), ce_points.end());
 	control_profiles_indices[nb_profiles-1] = true;
 
 	bool done = false;
@@ -530,12 +411,12 @@ double GC::generateApproximatedProfileCurves(Vector_vector_point_3 profiles_samp
 
 	while( !done ){
 
-		CGAL_Mesh approximated_shape = Utils::generateMesh(control_profiles);
+		CGAL_Mesh approximated_shape = Utils::generateMesh(alignedProfilesSamples, control_profiles_indices);
 
 		double max_dist = 0.0;
 		int max_index = -1;
 		// std::cout << "step 1" << std::endl;
-		for(int i = 1; i < nb_profiles-1; i++){
+		for(int i = 0; i < nb_profiles; i++){
 
 			if( !control_profiles_indices[i]){
 				Point_3 profile_centroid = alignedCentroids[i];
@@ -582,8 +463,7 @@ double GC::generateApproximatedProfileCurves(Vector_vector_point_3 profiles_samp
 
 double GC::computeCylindricity(double  C, double alpha){
 
-	// cylindricity = straightness(C) + alpha*profileVariation();
-	cylindricity = alpha*debugProfileVariation();
+	cylindricity = straightness(C) + alpha*profileVariation();
 	return cylindricity;
 }
 
@@ -592,13 +472,63 @@ GC GC::merge(GC b){
 
 	int n = axis.size() - 1;
 	// Constructions of an Hermite Curve from end point of this to start point of b
-	HermiteCurve unionOfaxis(axis[n].pe, axis[n].te, b.axis[0].ps, b.axis[0].ts);
+	HermiteCurve unionOfAxis(axis[n].pe, b.axis[0].ps, axis[n].te, b.axis[0].ts);
+	std::vector<HermiteCurve> middleAxis;
+	middleAxis.push_back(unionOfAxis);
+	GC middleGC(middleAxis, axis[n].pe, b.axis[0].ps);
+
+
+	// The new axis is the union of all the axis
 	std::vector<HermiteCurve> newAxis(axis);
-	// The new axis is the union of both axis + the union
-	// newAxis.insert(newAxis.begin(), axis.begin(), axis.end());
-	newAxis.push_back(unionOfaxis);
-	newAxis.insert(newAxis.end(), b.axis.begin(), b.axis.end()-1);
-	GC mergedGC(newAxis, ps, b.pe);
+	newAxis.insert(newAxis.end(), middleGC.axis.begin(), middleGC.axis.end());
+	newAxis.insert(newAxis.end(), b.axis.begin(), b.axis.end());
+
+	GC mergedGC(newAxis, ps, b.pe); //, false);
+	for(int i = 0; i < mergedGC.axis.size()-1; i++){
+		HermiteCurve hCurveA = mergedGC.axis[i];
+		HermiteCurve hCurveB = mergedGC.axis[i+1];
+		assert(hCurveA.pe == hCurveB.ps);
+	}
+
+/*	// Filling up mergedGC profiles, centroids normals, samples with those of gc A, middleGC and gc B
+	int sizeA = profiles.size();
+	int sizeMiddle = middleGC.profiles.size();
+	int sizeB = b.profiles.size();
+	int sizeMerge = sizeA + sizeMiddle + sizeB;
+
+	Vector_vector_point_3 tmpProfiles(sizeMerge);
+	for(int i = 0; i < sizeA; i++){
+		tmpProfiles[i] = profiles[i];
+	}
+	for(int i = sizeA; i < sizeMiddle; i++){
+		tmpProfiles[i] = middleGC.profiles[i];
+	}
+	for(int i = sizeMiddle; i < sizeB; i++){
+		tmpProfiles[i] = b.profiles[i];
+	}
+
+	std::vector<Point_3> tmpProfilesCentroids;
+	tmpProfilesCentroids.insert(tmpProfilesCentroids.end(), profilesCentroids.begin(), profilesCentroids.end() );
+	tmpProfilesCentroids.insert(tmpProfilesCentroids.end(), middleGC.profilesCentroids.begin(), middleGC.profilesCentroids.end() );
+	tmpProfilesCentroids.insert(tmpProfilesCentroids.end(), b.profilesCentroids.begin(), b.profilesCentroids.end() );
+	mergedGC.profilesCentroids = tmpProfilesCentroids;
+
+	Vector_vector_point_3 tmpAlignedProfilesSamples; //(sizeMerge);
+	for(int i = 0; i < sizeA; i++){
+		tmpAlignedProfilesSamples.push_back(alignedProfilesSamples[i]);
+	}
+	for(int i = sizeA; i < sizeMiddle; i++){
+		tmpAlignedProfilesSamples.push_back(middleGC.alignedProfilesSamples[i]);
+	}
+	for(int i = sizeMiddle; i < sizeB; i++){
+		tmpAlignedProfilesSamples.push_back(b.alignedProfilesSamples[i]);
+	}
+
+	std::vector<Vec3d> tmpProfilesNormals;
+	tmpProfilesNormals.insert(tmpProfilesNormals.end(), middleGC.profilesNormals.begin(), middleGC.profilesNormals.end() );
+	tmpProfilesNormals.insert(tmpProfilesNormals.end(), b.profilesNormals.begin(), b.profilesNormals.end() );
+	mergedGC.profilesNormals = tmpProfilesNormals;*/
+
 
 	return mergedGC;
 }

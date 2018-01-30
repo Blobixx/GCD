@@ -29,9 +29,10 @@
 #include "Mesh.h"
 #include "Shape.h"
 #include "Utils.h"
+#include <chrono>
 
 using namespace std;
-
+typedef std::chrono::high_resolution_clock Clock;
 // -------------------------------------------
 // OpenGL/GLUT application code.
 // -------------------------------------------
@@ -52,6 +53,7 @@ std::vector<CGAL_Mesh> meshes;
 std::vector<Point_3> points;
 std::vector<std::vector<Vec3d>> lines;
 Shape* shape;
+GLUquadricObj *quadratic;
 
 void printUsage () {
     cerr << endl
@@ -77,7 +79,35 @@ void usage () {
 }
 
 
+string getStringFromTime(float i_timeInSeconds){
+    ostringstream oss;
 
+    float hms; // for hour minute second
+    oss << i_timeInSeconds*1000.f << " ms";
+    if(i_timeInSeconds >= 1.f)
+    {
+        oss << " ( ";
+        if(i_timeInSeconds >= 3600.f)
+        {
+            hms = floor(i_timeInSeconds/3600.f);
+            oss << hms << "h ";
+            i_timeInSeconds -= hms * 3600.f;
+        }
+        if(i_timeInSeconds >= 60.f)
+        {
+            hms = floor(i_timeInSeconds/60.f);
+            oss << hms << "min ";
+            i_timeInSeconds -= hms * 60.f;
+        }
+        hms = floor(i_timeInSeconds);
+        oss << hms << "s ";
+        i_timeInSeconds -= hms;
+        hms = floor(i_timeInSeconds*1000.f);
+        oss << hms << "ms )";
+    }
+
+    return oss.str();
+}
 // ------------------------------------
 
 void initLight () {
@@ -103,6 +133,8 @@ void init (const char * modelFilename) {
     glEnable (GL_CULL_FACE);
     glDepthFunc (GL_LESS);
     glEnable (GL_DEPTH_TEST);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND); // to use transparency
 //    glClearColor (0.2f, 0.2f, 0.3f, 1.0f);
      glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glEnable (GL_COLOR_MATERIAL); // Dont forget this if you want to use glColor3f
@@ -119,16 +151,33 @@ void clear () {
 
 }
 
-// ------------------------------------
-// Replace the code of this
-// functions for alternative rendering.
-// ------------------------------------
+void drawCylinder(Vec3d startPoint, Vec3d endPoint){
 
+    Vec3d dir = endPoint - startPoint;
+    float length = (float)dir.length();
+    Vec3d ez = Vec3d(0.0, 0.0, 1.0);
+    float c = (float)dot(ez, dir);
+    Vec3d v = cross(ez, dir);
+    float v1 = (float)v[0];
+    float v2 = (float)v[1];
+    float v3 = (float)v[2];
+
+    float inv = 1.0f/(1.0f+c);
+    GLfloat rotation[16] = {1.0f-(v2*v2+v3*v3)*inv, -1.0f*v3+(v1*v2)*inv, v2+(v1*v3)*inv, (float)startPoint[0],
+                            v3+(v1*v2)*inv, 1.0f-(v1*v1+v3*v3)*inv, -1.0f*v1+(v2*v3)*inv, (float)startPoint[1],
+                            -1.0f*v2+(v1*v3)*inv, v1+(v2*v3)*inv, 1.0f-(v1*v1+v2*v2)*inv, (float)startPoint[2],
+                            0.0f, 0.0f, 0.0f, 1.0f
+                            };
+
+    glPushMatrix();
+    glLoadMatrixf(rotation);
+    gluCylinder(quadratic, 0.05f, 0.05f, length, 8, 8);
+    glPopMatrix();
+}
 void draw () {
 
-    glBegin (GL_TRIANGLES);
-
     // Hand mesh
+    glBegin (GL_TRIANGLES);
     for (unsigned int i = 0; i < mesh.T.size(); i++){
         for (unsigned int j = 0; j < 3; j++) {
             const Vertex & v = mesh.V[mesh.T[i].v[j]];
@@ -148,9 +197,10 @@ void draw () {
         }
     }*/
 
-    // Printing axis as line [ps,pe]
-    glBegin(GL_LINES);
+    // gluCylinder(quadratic, 0.5f, 0.5f, 5.0f, 16, 16);
 
+    // Printing axis of local gcs
+    glBegin(GL_LINES);
     for(int i = 0; i < shape->localGCs.size(); i++){
 
         GC gc = shape->localGCs[i];
@@ -158,23 +208,52 @@ void draw () {
         for(int j = 0; j < gc.axis.size(); j++){
             Vec3d p0 = gc.axis[j].interpolate(0.0);
             Vec3d p1 = gc.axis[j].interpolate(1.0);
-            glColor3f(0.0f, 1.0f, 0.0f);
+            glColor3f(0.0f, 0.0f, 1.0f);
             glVertex3f(p0[0], p0[1], p0[2]);
             glVertex3f(p1[0], p1[1], p1[2]);
 
         }
     }
     glEnd();
+    // for(int i = 0; i < shape->localGCs.size(); i++){
+
+    //     GC gc = shape->localGCs[i];
+    //     assert(gc.axis.size() == 1);
+    //     for(int j = 0; j < gc.axis.size(); j++){
+    //         Vec3d p0 = gc.axis[j].interpolate(0.0);
+    //         Vec3d p1 = gc.axis[j].interpolate(1.0);
+    //         glColor3f(0.0f, 0.0f, 1.0f);
+    //         drawCylinder(p0, p1);
+
+    //     }
+    // }
+    // Printing axis of nonlocal gcs as line [ps,pe]
+    // glBegin(GL_LINES);
+
+    for(int i = 0; i < shape->nonLocalGCs.size(); i++){
+
+        GC gc = shape->nonLocalGCs[i];
+        //assert(gc.axis.size() == 1);
+        for(int j = 0; j < gc.axis.size(); j++){
+            Vec3d p0 = gc.axis[j].interpolate(0.0);
+            Vec3d p1 = gc.axis[j].interpolate(1.0);
+            glColor3f(0.0f, 1.0f, 0.0f);
+            // glVertex3f(p0[0], p0[1], p0[2]);
+            // glVertex3f(p1[0], p1[1], p1[2]);
+            drawCylinder(p0, p1);
+        }
+    }
+    // glEnd();
 
     // Printing profile curves
-   glBegin(GL_POINTS);
+   /*glBegin(GL_POINTS);
 
    for(int i = 0; i < shape->localGCs.size(); i++){
 
        GC gc = shape->localGCs[i];
-       for(int j = 0; j < gc.rotatedProfiles.size(); j++){
+       for(int j = 0; j < gc.alignedProfiles.size(); j++){
 
-           std::vector<Point_3> profile = gc.rotatedProfiles[j];
+           std::vector<Point_3> profile = gc.alignedProfiles[j];
            for(int k = 0; k < profile.size(); k++){
 
                Point_3 p = profile[k];
@@ -184,7 +263,7 @@ void draw () {
 
        }
    }
-   glEnd();
+   glEnd();*/
 }
 
 void display () {
@@ -206,7 +285,7 @@ void idle () {
         counter = 0;
         static char winTitle [64];
         unsigned int numOfTriangles = mesh.T.size ();
-        sprintf (winTitle, "gmini - Num. Of Tri.: %d - FPS: %d", numOfTriangles, FPS);
+        sprintf (winTitle, "Num. Of Tri.: %d - FPS: %d", numOfTriangles, FPS);
         glutSetWindowTitle (winTitle);
         lastTime = currentTime;
     }
@@ -338,8 +417,10 @@ void initMeshes(int argc, char **argv, const char *filename){
     std::ifstream input(filename);
     input >> shape->mesh;
     shape->initLocalGCs(argv[1], argv[2], 0.001);
+    std::cout << "shape local size: " << shape->localGCs.size() << std::endl;
 
-    // shape->mergeLocalGCs();
+    shape->mergeLocalGCs();
+    std::cout << "shape non local size: " << shape->nonLocalGCs.size() << std::endl;
 
     // int nbLocalGCs = shape->localGCs.size();
 
@@ -355,7 +436,7 @@ void initGlut(int argc, char **argv){
     glutInitDisplayMode (GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
     glutInitWindowSize (SCREENWIDTH, SCREENHEIGHT);
     window = glutCreateWindow ("GCD Viewer");
-
+    quadratic = gluNewQuadric();
     const char *filename = argc == 4 ? argv[1] : "../hand_mesh.off";
 
     initMeshes(argc, argv, filename);
@@ -378,6 +459,7 @@ int main (int argc, char ** argv) {
         std::cout << "Wrong number of inputs" << std::endl;
         exit (EXIT_FAILURE);
     }
+
     initGlut(argc, argv);
 
     return EXIT_SUCCESS;

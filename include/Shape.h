@@ -30,7 +30,7 @@ class Shape {
 		Shape(){
 			C = 0.1;
 			alpha = 1.0;
-            tau = 0.38;
+            tau = 0.8;
 		}
 		Shape(double _C, double _alpha, double _tau){
 			C = _C;

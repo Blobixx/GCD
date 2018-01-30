@@ -19,6 +19,9 @@ class GC {
 		// Set of profiles curves of GC
 		// std::vector<Polylines> profiles;
 		Vector_vector_point_3 profiles;
+		std::vector<Point_3> profilesCentroids;
+		std::vector<Vec3d> profilesNormals;
+		Vector_vector_point_3 alignedProfilesSamples;
 		std::vector<CGAL_Mesh> approximatedShapes;
 		// std::vector<Polylines> aligned_profiles;
 		Vector_vector_point_3 alignedProfiles;
@@ -35,11 +38,13 @@ class GC {
 			shape = "../hand_mesh.off";
 		}
 
-		GC(std::vector<HermiteCurve> _axis, Vec3d _ps, Vec3d _pe){
+		GC(std::vector<HermiteCurve> _axis, Vec3d _ps, Vec3d _pe, bool computeProfile = true){
 			axis = _axis;
 			ps = _ps;
 			pe = _pe;
 			shape = "../hand_mesh.off";
+			if(computeProfile)
+				computeProfiles();
 		}
 
 		/*GC(std::vector<HermiteCurve> _axis, Vec3d _ps, Vec3d _pe, std::vector<Polylines> _profiles){
@@ -111,12 +116,19 @@ class GC {
                 pe = _gc.pe;
                 axis = _gc.axis;
                 cylindricity = _gc.cylindricity;
+                profilesNormals = _gc.profilesNormals;
+                profilesCentroids = _gc.profilesCentroids;
+                for(int i = 0; i < _gc.profiles.size(); i++){
+                	profiles.push_back(_gc.profiles[i]);
+
+                }
                 return (*this);
         };
 		double computeCylindricity(double C, double alpha);
 		double straightness(double C);
 		double profileVariation();
-		double debugProfileVariation();
+        void computeProfiles();
+		// double debugProfileVariation();
 		// Finds point with the maximun distant to the line between start_point and end_point
 		controlPoint_t findMaxDistToLine(controlPoint_t controlPtA, controlPoint_t controlPtB);
 		GC merge(GC b);
