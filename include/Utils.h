@@ -62,6 +62,31 @@ struct controlPoint_t {
     };
 };
 
+struct controlPoint {
+
+	int axis_part; // to which hermite curve of the axis the point belongs to
+	int parameter;
+	double dist;
+
+	controlPoint(): axis_part(0), parameter(0.0), dist(0.0) {}
+	controlPoint(int axis_part, double parameter, double dist): axis_part(axis_part),
+																parameter(parameter),
+																dist(dist) {}
+    bool isSameAs(const controlPoint _control) {
+        if(axis_part == _control.axis_part && parameter == _control.parameter && dist == _control.dist){
+            return true;
+        }
+        return false;
+    };
+
+    inline controlPoint& operator= (const controlPoint & _cp) {
+            axis_part = _cp.axis_part;
+            parameter = _cp.parameter;
+            dist = _cp.dist;
+            return (*this);
+    };
+};
+
 struct Construct{
 	CGAL_Mesh& mesh;
 	template < typename PointIterator>
@@ -109,27 +134,43 @@ class Utils{
 		  // std::cout << "step 03" << std::endl;
 		  return m;
 		}
+		static CGAL_Mesh generateMesh(Vector_vector_point_3 alignedProfilesSamples, std::vector<bool> control_profiles_indices,
+							int minCtrlPrflIdx, int maxCtrlPrflIdx){
+
+			std::vector<Point_3> points;
+            for(int i = minCtrlPrflIdx; i <= maxCtrlPrflIdx; i++){
+                if(control_profiles_indices[i]){
+                    points.insert(points.end(), alignedProfilesSamples[i].begin(), alignedProfilesSamples[i].end());
+                }
+            }
+
+			CGAL_Mesh m;
+
+			Construct construct(m, points.begin(), points.end());
+			CGAL::advancing_front_surface_reconstruction(points.begin(),
+		                                           		points.end(),
+		                                           		construct);
+			return m;
+		}
 
 		static CGAL_Mesh generateMesh(Vector_vector_point_3 alignedProfilesSamples, std::vector<bool> control_profiles_indices){
 
 			std::vector<Point_3> points;
-			for(int i = 0; i < control_profiles_indices.size(); i++){
-				if(control_profiles_indices[i]){
-					points.insert(points.end(), alignedProfilesSamples[i].begin(), alignedProfilesSamples[i].end()-1);
-				}
-			}
+
+            for(int i = 0; i < control_profiles_indices.size(); i++){
+                if(control_profiles_indices[i]){
+                    points.insert(points.end(), alignedProfilesSamples[i].begin(), alignedProfilesSamples[i].end());
+                }
+            }
 
 			CGAL_Mesh m;
 			/*std::copy(std::istream_iterator<Point_3>(in),
 			        std::istream_iterator<Point_3>(),
 			        std::back_inserter(points));*/
-			// std::cout << "step 01" << std::endl;
 			Construct construct(m,points.begin(),points.end());
-			// std::cout << "step 02" << std::endl;
 			CGAL::advancing_front_surface_reconstruction(points.begin(),
 			                                           points.end(),
 			                                           construct);
-			// std::cout << "step 03" << std::endl;
 			return m;
 		}
 

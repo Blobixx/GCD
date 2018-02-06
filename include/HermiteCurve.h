@@ -19,19 +19,19 @@ class HermiteCurve {
 
 		// s in [0;1]
 		Vec3d interpolate(double s){
-			Vec3d _value = (2.0*s*s*s - 3.0*s*s +1.0)*ps +
-				(s*s*s - 2.0*s*s +s)*ts +
-				(-2.0*s*s*s + 3.0*s*s)*pe +
-				(s*s*s -s*s)*te;
+            Vec3d _value = ps*(2.0*s*s*s - 3.0*s*s +1.0) +
+                ts*(s*s*s - 2.0*s*s +s) +
+                pe*(-2.0*s*s*s + 3.0*s*s) +
+                te*(s*s*s -s*s);
 
 			return _value;
 		}
 
 		Vec3d get_tangent(double s){
-			Vec3d _value = (6.0*s*s - 6.0*s)*ps +
-				(3.0*s*s - 4.0*s +1.0)*ts +
-				(-6.0*s*s + 6.0*s)*pe +
-				(3.0*s*s -2.0*s)*te;
+            Vec3d _value = ps*(6.0*s*s - 6.0*s) +
+                ts*(3.0*s*s - 4.0*s +1.0) +
+                pe*(-6.0*s*s + 6.0*s) +
+                te*(3.0*s*s -2.0*s);
 
 			return _value;
 		}
