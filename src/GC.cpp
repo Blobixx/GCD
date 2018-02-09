@@ -4,14 +4,13 @@
 #include <cassert>
 
 
+// Douglas Peucker algorithm
 void GC::DP(controlPoint controlPtA, controlPoint controlPtB, double& _straightness, int step, double epsilon){
 
 	if(controlPtA.axis_part == controlPtB.axis_part && controlPtA.dist == controlPtB.dist &&
 		controlPtA.parameter == controlPtB.parameter){
         return;
 	}
-
-	int axisSize = axis.size();
 
     Vec3d lineStart = axis[controlPtA.axis_part].interpolate((double)controlPtA.parameter/step);
     Vec3d lineEnd = axis[controlPtB.axis_part].interpolate((double)controlPtB.parameter/step);
@@ -20,6 +19,7 @@ void GC::DP(controlPoint controlPtA, controlPoint controlPtB, double& _straightn
 
 	double maxDist = 0.0;
     int maxAxisPart;
+    int maxParam = -1;
 
 	// check on controlPtA axis part
 	for(int t = (controlPtA.parameter+1); t <= step; t++){        double param = (double) t/d_step;

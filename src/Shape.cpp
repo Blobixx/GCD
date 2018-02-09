@@ -54,13 +54,10 @@ void Shape::mergeLocalGCs(){
 
 	int nbLocalGCs = localGCs.size();
 	std::vector<GC> tmp = localGCs; // Stores current state of non local GCs.
-	bool done = false;
 	int generatorIndex = 0;
-	int notmerged = nbLocalGCs;
 	while(generatorIndex < tmp.size()){
 
 		GC gcA = tmp[generatorIndex];
-		int size = tmp.size();
 		int index = 0;
         std::cout << "generator " << generatorIndex << std::endl;
         while(index < tmp.size()){

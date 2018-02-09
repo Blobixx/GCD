@@ -316,6 +316,19 @@ class Utils{
 			return d;
 		}
 
+		static std::vector<Point_3> getAllPoints(Polylines polylines){
+
+			std::vector<Point_3> allPoints;
+			for(int i = 0; i < polylines.size(); i++){
+
+				Polyline_type poly_type = polylines[i];
+				for(int j = 0; j < poly_type.size(); j++){
+					allPoints.push_back(poly_type[j]);
+				}
+			}
+			return allPoints;
+		}
+
 };
 
 #endif //UTILS_H
