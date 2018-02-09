@@ -23,7 +23,13 @@
 
 #include <algorithm>
 #include <GLUT/glut.h>
-//#include <GL/glut.h> //not good for mac
+#ifdef __APPLE__
+    #include <OpenGL/gl.h>
+    #include <GLUT/glut.h>
+#else
+    #include <GL/gl.h>
+    #include <GL/glut.h>
+#endif
 #include "Vec3.h"
 #include "Camera.h"
 #include "Mesh.h"
@@ -157,9 +163,6 @@ void clear () {
 void drawCylinder(Vec3d startPoint, Vec3d endPoint, float length){
 
     Vec3d dir = endPoint - startPoint;
-    // float length = (float)dir.length();
-    // float length = 0.01;
-    // std::cout << "length: " << dir.length() << std::endl;
     dir.normalize();
     Vec3d ez = Vec3d(0.0, 0.0, 1.0);
     Vec3d middlePoint = startPoint*0.5 + endPoint*0.5;
@@ -169,6 +172,8 @@ void drawCylinder(Vec3d startPoint, Vec3d endPoint, float length){
     float v2 = (float)v[1];
     float v3 = (float)v[2];
 
+    // Cylinder is by default along z axis
+    // Transformation here to position and orient on local GC
     glPushMatrix();
     glTranslatef((float)middlePoint[0], (float)middlePoint[1], (float)middlePoint[2]-0.5*length);
     if( fabs(1.0f+c) < 0.0000001f || fabs(1.0f-c) < 0.0000001f){
@@ -181,11 +186,6 @@ void drawCylinder(Vec3d startPoint, Vec3d endPoint, float length){
         glMultMatrixf(rotation);
     }else{
         float inv = 1.0f/(1.0f+c);
-        // GLfloat rotation[16] = { 1.0f-(v2*v2+v3*v3)*inv, v3+(v1*v2)*inv, -1.0f*v2+(v1*v3)*inv, 0.0f,
-        //                         -1.0f*v3+(v1*v2)*inv, 1.0f-(v1*v1+v3*v3)*inv, v1+(v2*v3)*inv, 0.0f,
-        //                         v2+(v1*v3)*inv, -1.0f*v1+(v2*v3)*inv, 1.0f-(v1*v1+v2*v2)*inv, 0.0f,
-        //                         (float)startPoint[0], (float)startPoint[1], (float)startPoint[2], 1.0f
-        //                         };
         GLfloat rotation[16] = {1.0f-(v2*v2+v3*v3)*inv, -1.0f*v3+(v1*v2)*inv, v2+(v1*v3)*inv, 0.0f,
                                 v3+(v1*v2)*inv, 1.0f-(v1*v1+v3*v3)*inv, -1.0f*v1+(v2*v3)*inv, 0.0f,
                                 -1.0f*v2+(v1*v3)*inv, v1+(v2*v3)*inv, 1.0f-(v1*v1+v2*v2)*inv, 0.0f,
@@ -201,8 +201,6 @@ void drawCylinder(Vec3d startPoint, Vec3d endPoint, float length){
 void draw () {
 
     // Hand mesh
-    // glPushMatrix();
-    // glScalef(10.0f,10.0f,10.0f);
     glBegin (GL_TRIANGLES);
     for (unsigned int i = 0; i < mesh.T.size(); i++){
         for (unsigned int j = 0; j < 3; j++) {
@@ -214,63 +212,20 @@ void draw () {
         }
     }
     glEnd ();
-    /*for(int index = 0; index < meshes.size(); index++){
-        CGAL_Mesh gc = meshes[index];
-        BOOST_FOREACH(CGAL_Mesh::Vertex_index vd, gc.vertices()){
-            Point_3 point =  gc.point(vd);
-            glColor3f(0.6f, 0.0f, 0.4f);
-            glVertex3f(point.x(), point.y(), point.z());
-        }
-    }*/
 
-    // gluCylinder(quadratic, 0.5f, 0.5f, 5.0f, 16, 16);
-
-    // Printing axis of local gcs
-    // glBegin(GL_LINES);
+    // Locals GCs as cylinders
     for(int i = 0; i < shape->localGCs.size(); i++){
 
         GC gc = shape->localGCs[i];
         assert(gc.axis.size() == 1);
-//        glLineWidth(10.0);
         for(int j = 0; j < gc.axis.size(); j++){
             Vec3d p0 = gc.axis[j].interpolate(0.0);
             Vec3d p1 = gc.axis[j].interpolate(1.0);
             glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
             drawCylinder(p0, p1, 0.01f);
-            // glVertex3f(p0[0], p0[1], p0[2]);
-            // glVertex3f(p1[0], p1[1], p1[2]);
-
         }
     }
-    // glEnd();
-    // glPopMatrix();
-    // Printing aligned profiles
-    // glBegin(GL_LINES);
-    // for(int i = 0; i < shape->localGCs.size(); i++){
 
-    //     GC gc = shape->localGCs[i];
-    //     for(int j = 0; j < gc.alignedProfiles.size(); j++){
-    //         std::vector<Point_3> profile = gc.alignedProfiles[j];
-    //         for(int k = 0; k < profile.size(); k++){
-    //             Point_3 p = profile[k];
-    //             glColor3f(0.0f, 0.0f, 1.0f);
-    //             glVertex3f(p.x(), p.y(), p.z());
-    //        }
-    //     }
-    // }
-    // glEnd();
-    // for(int i = 0; i < shape->localGCs.size(); i++){
-
-    //     GC gc = shape->localGCs[i];
-    //     assert(gc.axis.size() == 1);
-    //     for(int j = 0; j < gc.axis.size(); j++){
-    //         Vec3d p0 = gc.axis[j].interpolate(0.0);
-    //         Vec3d p1 = gc.axis[j].interpolate(1.0);
-    //         glColor3f(0.0f, 0.0f, 1.0f);
-    //         drawCylinder(p0, p1);
-
-    //     }
-    // }
     // Printing axis of nonlocal gcs as line [ps,pe]
     glBegin(GL_LINES);
     for(int i = 0; i < shape->nonLocalGCs.size(); i++){
@@ -285,38 +240,14 @@ void draw () {
         float bval = prop;
         GC gc = shape->nonLocalGCs[i];
         glColor4f(0.0f, gval, bval, 1.0f);
-        // glLineWidth(5.0);
         for(int j = 0; j < gc.axis.size(); j++){
             Vec3d p0 = gc.axis[j].interpolate(0.0);
             Vec3d p1 = gc.axis[j].interpolate(1.0);
-            // glColor4f(0.0f, 1.0f, 0.0f, 1.0f);
             glVertex3f(p0[0], p0[1], p0[2]);
             glVertex3f(p1[0], p1[1], p1[2]);
-            // float length = (p1 - p0).normalize();
-            // drawCylinder(p0, p1, length);
         }
     }
     glEnd();
-
-    // Printing profile curves
-   /*glBegin(GL_POINTS);
-
-   for(int i = 0; i < shape->localGCs.size(); i++){
-
-       GC gc = shape->localGCs[i];
-       for(int j = 0; j < gc.alignedProfiles.size(); j++){
-
-           std::vector<Point_3> profile = gc.alignedProfiles[j];
-           for(int k = 0; k < profile.size(); k++){
-
-               Point_3 p = profile[k];
-               glColor3f(0.6f, 0.0f, 0.4f);
-               glVertex3f(CGAL::to_double(p.x()), CGAL::to_double(p.y()), CGAL::to_double(p.z()));
-           }
-
-       }
-   }
-   glEnd();*/
 }
 
 void display () {
@@ -443,49 +374,21 @@ void reshape(int w, int h) {
     camera.resize (w, h);
 }
 
-/*void initLines(int argc, char **argv, const char *filename){
-
-    Shape *shape = new Shape();
-    std::ifstream input(filename);
-    input >> shape->mesh;
-    shape->initLocalGCs(argv[1], argv[2], 0.1);
-    int nbLocalGCs = shape->localGCs.size();
-
-    for(int index = 0; index < nbLocalGCs; index++){
-
-        GC gc = shape->localGCs[index];
-        HermiteCurve axis = gc.axis[0];
-        std::vector<Vec3d> points;
-        for(int t = 0; t <= 3; t++){
-            points.push_back(axis.interpolate(t/3.0));
-        }
-        lines.push_back(points);
-    }
-    std::cout << "There is " << lines.size() << " local GCs." << std::endl;
-}*/
-
 void initMeshes(int argc, char **argv, const char *filename){
 
-    double tau = std::atof(argv[3]);
-    double epsilon = std::atof(argv[4]);
-    double dn = std::atof(argv[5]);
+    double tau = std::atof(argv[4]);
+    double epsilon = std::atof(argv[5]);
+    double dn = std::atof(argv[6]);
     std::cout << "tau: " << tau <<", epsilon: " << epsilon << ", dn: " << dn << std::endl;
-    shape = new Shape(0.1, 1.0, tau, epsilon, dn);
+    shape = new Shape(0.1, 1.0, tau, epsilon, dn, filename);
+
     std::ifstream input(filename);
     input >> shape->mesh;
-    shape->initLocalGCs(argv[1], argv[2]);
+    shape->initLocalGCs(argv[2], argv[3]);
     std::cout << "shape local size: " << shape->localGCs.size() << std::endl;
 
     shape->mergeLocalGCs();
     std::cout << "shape non local size: " << shape->nonLocalGCs.size() << std::endl;
-
-    // int nbLocalGCs = shape->localGCs.size();
-
-    // for(int index = 0; index < nbLocalGCs; index++){
-
-    //     std::vector<Point_3> GC_points = shape->localGCs[index].getAllPoints();
-    //     meshes.push_back(Utils::generateMesh(GC_points));
-    // }
 }
 
 void initGlut(int argc, char **argv){
@@ -494,11 +397,16 @@ void initGlut(int argc, char **argv){
     glutInitWindowSize (SCREENWIDTH, SCREENHEIGHT);
     window = glutCreateWindow ("GCD Viewer");
     quadratic = gluNewQuadric();
-    const char *filename = argc == 4 ? argv[1] : "../hand_mesh.off";
+    const char *filename = argc == 7 ? argv[1] : "../hand_mesh.off";
 
-    // argv 1: points 2: rosa normals 3:tau 4: epsilon 5: dn
+    /* argv 1: points
+     2: mesh
+     3: rosa normals
+     4: tau
+     5: epsilon
+     6: dn
+    */
     initMeshes(argc, argv, filename);
-    // initLines(argc, argv, filename);
     init(filename);
 
     glutIdleFunc (idle);
@@ -512,7 +420,7 @@ void initGlut(int argc, char **argv){
 }
 
 int main (int argc, char ** argv) {
-    if (argc != 6) {
+    if (argc != 7) {
         // printUsage ();
         std::cout << "Wrong number of inputs" << std::endl;
         exit (EXIT_FAILURE);

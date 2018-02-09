@@ -1,12 +1,12 @@
 // --------------------------------------------------------------------------
 // Copyright(C) 2009-2016
 // Tamy Boubekeur
-// 
-// Permission granted to use this code only for teaching projects and 
+//
+// Permission granted to use this code only for teaching projects and
 // private practice.
 //
-// Do not distribute this code outside the teaching assignements.                                                                           
-// All rights reserved.                                                       
+// Do not distribute this code outside the teaching assignements.
+// All rights reserved.
 // --------------------------------------------------------------------------
 
 #ifndef VEC3_H
@@ -15,9 +15,8 @@
 #include <cmath>
 #include <iostream>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-// #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-// typedef CGAL::Exact_predicates_exact_constructions_kernel K;
 typedef K::Point_3  Point_3;
 
 /// Vector in 3 dimensions, with basics operators overloaded.

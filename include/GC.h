@@ -16,34 +16,39 @@ class GC {
 		Vec3d ps; // Starting point of this axis
 		Vec3d pe; // End point of the axis
 		const char* shape; // Mesh model
-		// Set of profiles curves of GC
+
 		Vector_vector_point_3 profiles;
 		std::vector<Point_3> profilesCentroids;
 		std::vector<Vec3d> profilesNormals;
+
 		Vector_vector_point_3 alignedProfilesSamples;
-		std::vector<CGAL_Mesh> approximatedShapes;
-		// std::vector<Polylines> aligned_profiles;
 		Vector_vector_point_3 alignedProfiles;
 		Vector_vector_point_3 alignedAndParallelProfiles;
-		// Centroids of each profiles curves aligned on a straigt line
 		std::vector<Point_3> alignedCentroids;
-		Vector_vector_point_3 originalProfiles;
-		Vector_vector_point_3 rotatedProfiles;
-		int nb_profile_samples = 6;
+
+		int nb_profile_samples;
 		double cylindricity;
 		double checkStraightness;
 
 		GC(Vec3d _p, Vec3d _normal){
 			p = _p;
 			rosa_normal = _normal;
-			shape = "../hand_mesh.off";
 		}
 
 		GC(std::vector<HermiteCurve> _axis, Vec3d _ps, Vec3d _pe, bool computeProfile = true){
 			axis = _axis;
 			ps = _ps;
 			pe = _pe;
-			shape = "../hand_mesh.off";
+			checkStraightness = 0.0;
+			if(computeProfile)
+				computeProfiles();
+		}
+
+		GC(std::vector<HermiteCurve> _axis, Vec3d _ps, Vec3d _pe, const char* filename, bool computeProfile = true){
+			axis = _axis;
+			ps = _ps;
+			pe = _pe;
+			shape = filename;
 			checkStraightness = 0.0;
 			if(computeProfile)
 				computeProfiles();
@@ -53,7 +58,6 @@ class GC {
 			axis = _axis;
 			ps = _ps;
 			pe = _pe;
-			shape = "../hand_mesh.off";
 			for(int i = 0; i < _profiles.size(); i++){
 
 				std::vector<Point_3> points = _profiles[i];
@@ -63,7 +67,6 @@ class GC {
 		}
 		GC(std::vector<HermiteCurve> _axis, Vector_vector_point_3 _profiles){
 			axis = _axis;
-			shape = "../hand_mesh.off";
 			profiles.resize(0);
 			for(int i = 0; i < _profiles.size(); i++){
 
@@ -93,15 +96,14 @@ class GC {
                         profiles[i].push_back(pts[j]);
                 	}
                 }
+                shape  = _gc.shape;
                 return (*this);
         };
+
 		double computeCylindricity(double C, double alpha, double epsilon);
 		double straightness(double C, double epsilon);
 		double profileVariation(double epsilon);
         void computeProfiles();
-		// double debugProfileVariation();
-		// Finds point with the maximun distant to the line between start_point and end_point
-		// controlPoint_t findMaxDistToLine(controlPoint_t controlPtA, controlPoint_t controlPtB);
 		GC merge(GC b);
         double generateApproximatedProfileCurves(Vector_vector_point_3 profiles_samples, double epsilon, Vec3d n);
 		// Returns a vector with all the points belonging to the GC

@@ -44,7 +44,12 @@ IF(APPLE)
    MARK_AS_ADVANCED (GLUT_LIBRARY
                      OpenGL_LIBRARY)
    SET(EXTRA_LIBS ${GLUT_LIBRARY} ${OpenGL_LIBRARY} )
+   ELSE()
+  find_package(OpenGL REQUIRED)
+  find_package(GLUT REQUIRED)
+  SET(EXTRA_LIBS ${GLUT_LIBRARY} ${OpenGL_LIBRARY})
 ENDIF (APPLE)
+
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 

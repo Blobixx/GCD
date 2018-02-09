@@ -116,24 +116,23 @@ struct Construct{
 class Utils{
 
 	public:
+
+		// Generates mesh from set of points
 		static CGAL_Mesh generateMesh(std::vector<Point_3> points){
 
-		  //std::ifstream in((argc>1)?argv[1]:"data/half.xyz");
-		  //std::vector<Point_3> points;
-		  //std::vector<Facet> facets;
 		  CGAL_Mesh m;
-		  /*std::copy(std::istream_iterator<Point_3>(in),
-		            std::istream_iterator<Point_3>(),
-		            std::back_inserter(points));*/
-		  // std::cout << "step 01" << std::endl;
+
 		  Construct construct(m,points.begin(),points.end());
-		  // std::cout << "step 02" << std::endl;
 		  CGAL::advancing_front_surface_reconstruction(points.begin(),
 		                                               points.end(),
 		                                               construct);
-		  // std::cout << "step 03" << std::endl;
 		  return m;
 		}
+
+		// Used in profile variation computation
+		// Generates approximated shape from profiles :
+		//	- involved in the approximated shape
+		//	- between minCtrlPrflIdx and maxCtrlPrflIdx indices
 		static CGAL_Mesh generateMesh(Vector_vector_point_3 alignedProfilesSamples, std::vector<bool> control_profiles_indices,
 							int minCtrlPrflIdx, int maxCtrlPrflIdx){
 
@@ -199,21 +198,6 @@ class Utils{
 		    return getAllPoints(polylines);
 		}
 
-		/*static Polylines cross_section(Vec3f normal, Vec3f p, CGAL_Mesh mesh){
-
-		    Polylines polylines;
-		    CGAL::Polygon_mesh_slicer<CGAL_Mesh, K> slicer(mesh);
-
-		    float a = normal[0];
-		    float b = normal[1];
-		    float c = normal[2];
-		    float d = -a*p[0] - b*p[1] - c*p[2];
-
-		    //Equation of plane is a*x + b*y + c*z + d = 0
-		    slicer(K::Plane_3(a, b, c, d), std::back_inserter(polylines));
-
-		    return polylines;
-		}*/
 		static std::vector<Point_3> cross_section(Vec3d normal, Vec3d p, CGAL_Mesh mesh){
 
 		    Polylines polylines;
@@ -283,19 +267,6 @@ class Utils{
 
 			return std::max(max_ij, max_ji);
 
-		}
-
-		static std::vector<Point_3> getAllPoints(Polylines polylines){
-
-			std::vector<Point_3> allPoints;
-			for(int i = 0; i < polylines.size(); i++){
-
-				Polyline_type poly_type = polylines[i];
-				for(int j = 0; j < poly_type.size(); j++){
-					allPoints.push_back(poly_type[j]);
-				}
-			}
-			return allPoints;
 		}
 
 		static std::vector<Point_3> sampleProfileCurve(std::vector<Point_3> points, int nb_samples){
